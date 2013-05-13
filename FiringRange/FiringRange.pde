@@ -151,13 +151,11 @@ void draw()
     save("renders/render"+nf(frameCount, 6)+".png");
   }
   
-  
   /*
   // Draw the collision map as an overlay
   tint(255, 64);
   image(collMap,0,0);
   */
-  
   
   // Diagnostic
   if(frameCount % 60 == 0)

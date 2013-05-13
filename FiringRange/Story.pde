@@ -37,35 +37,26 @@ Includes time management.
   // Graphics
   
   // Standard hulls
-  PImage image_hull1_diff = loadImage("ship2_series6_diff.png");
-  PImage image_hull1_norm = loadImage("ship2_series6_norm.png");
-  PImage image_hull1_coll = loadImage("ship2_series6_coll.png");
+  PImage image_hull1_diff = loadImage("ship2_series7_diff_128.png");
+  PImage image_hull1_norm = loadImage("ship2_series7_norm_128.png");
+  PImage image_hull1_coll = loadImage("ship2_series7_coll_128.png");
   
-  PImage image_hull2_diff = loadImage("ship2_series6_diff_256.png");
-  PImage image_hull2_norm = loadImage("ship2_series6_norm_256.png");
-  PImage image_hull2_coll = loadImage("ship2_series6_coll_256.png");
+  PImage image_hull2_diff = loadImage("ship2_series7_diff_256.png");
+  PImage image_hull2_norm = loadImage("ship2_series7_norm_256.png");
+  PImage image_hull2_coll = loadImage("ship2_series7_coll_256.png");
   
-  PImage image_hull3_diff = loadImage("ship2_series6_diff_512.png");
-  PImage image_hull3_norm = loadImage("ship2_series6_norm_512.png");
-  PImage image_hull3_coll = loadImage("ship2_series6_coll_512.png");
+  PImage image_hull3_diff = loadImage("ship2_series7_diff_512.png");
+  PImage image_hull3_norm = loadImage("ship2_series7_norm_512.png");
+  PImage image_hull3_coll = loadImage("ship2_series7_coll_512.png");
   
   // Breakable hulls
-  /*
-  PImage image_hull3_break_main_diff = loadImage("ship2_series6_BREAK_MAIN_DIFF_256.png");
-  PImage image_hull3_break_main_norm = loadImage("ship2_series6_BREAK_MAIN_NORM_256.png");
-  PImage image_hull3_break_main_coll = loadImage("ship2_series6_BREAK_MAIN_COLL_256.png");
+  PImage image_hull3_break_main_diff = loadImage("ship2_series7_main_diff_512.png");
+  PImage image_hull3_break_main_norm = loadImage("ship2_series7_main_norm_256.png");
+  PImage image_hull3_break_main_coll = loadImage("ship2_series7_main_coll_512.png");
   
-  PImage image_hull3_break_calf_diff = loadImage("ship2_series6_BREAK_CALF_DIFF_256.png");
-  PImage image_hull3_break_calf_norm = loadImage("ship2_series6_BREAK_CALF_NORM_256.png");
-  PImage image_hull3_break_calf_coll = loadImage("ship2_series6_BREAK_CALF_COLL_256.png");
-  */
-  PImage image_hull3_break_main_diff = loadImage("ship2_series6_BREAK_MAIN_DIFF.png");
-  PImage image_hull3_break_main_norm = loadImage("ship2_series6_BREAK_MAIN_NORM_256.png");
-  PImage image_hull3_break_main_coll = loadImage("ship2_series6_BREAK_MAIN_COLL.png");
-  
-  PImage image_hull3_break_calf_diff = loadImage("ship2_series6_BREAK_CALF_DIFF.png");
-  PImage image_hull3_break_calf_norm = loadImage("ship2_series6_BREAK_CALF_NORM_256.png");
-  PImage image_hull3_break_calf_coll = loadImage("ship2_series6_BREAK_CALF_COLL.png");
+  PImage image_hull3_break_calf_diff = loadImage("ship2_series7_calf_diff_512.png");
+  PImage image_hull3_break_calf_norm = loadImage("ship2_series7_calf_norm_256.png");
+  PImage image_hull3_break_calf_coll = loadImage("ship2_series7_calf_coll_512.png");
   
   // Impact assets
   PImage image_smoke = loadImage("smokePuff2.png");

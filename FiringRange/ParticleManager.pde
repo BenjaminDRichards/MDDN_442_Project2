@@ -163,9 +163,10 @@ class ParticleManager
         color probe = cMap.get(x, y);
         
         // Probe check
-        if(255 == alpha(probe))
+        if(250 <= alpha(probe))
         {
           // Solid collision
+          // We're not picking 255 because sometimes colour gets distorted on rescale.
           //println("Collided with object id " + probe);
           
           // Remove particle from shot list
