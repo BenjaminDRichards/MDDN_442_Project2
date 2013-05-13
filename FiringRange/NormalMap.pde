@@ -32,7 +32,6 @@ class NormalMap
   PVector pos;  // The upper left corner of the map
   float ang;
   float scalar;
-  float scalar_to_master;
   
   // Lighting data
   ArrayList lightList;
@@ -53,7 +52,6 @@ class NormalMap
     pos = new PVector(0,0,0);
     ang = 0.0;
     scalar = 1.0;
-    scalar_to_master = 1.0;
     
     // Setup lights
     lightList = new ArrayList();
@@ -67,10 +65,12 @@ class NormalMap
     // Evaluate lights
     // Some lights will be too far away, so let's build an optimised list
     optimalLights = new ArrayList();
+    // Project map centre
     PVector posCentral = pos.get();
     PVector posCentralOffset = new PVector(map.width / 2.0,  map.height / 2.0);
     posCentralOffset.rotate(ang);
     posCentral.add(posCentralOffset.x,  posCentralOffset.y,  0);
+    // Iterate through lights
     Iterator li = lightList.iterator();
     while( li.hasNext() )
     {
@@ -87,13 +87,17 @@ class NormalMap
     }
     
     
+    lightBuffer.beginDraw();
+    lightBuffer.clear();
+    
+    
     // Process pixels
     lightBuffer.loadPixels();
     for(int i = 0;  i < lightBuffer.pixels.length;  i++)
     {
       // Derive position
       int x = i % lightBuffer.width;
-      int y = floor(i / lightBuffer.width);
+      int y = floor(i / (float)lightBuffer.width);
       int z = 0;
       // Offset position into real space
       PVector offset = new PVector(x, y);
@@ -103,12 +107,11 @@ class NormalMap
       float oy = offset.y + pos.y;
       float oz = z + pos.z;
       // Declare position
-      PVector pixPos = new PVector(x, y, z);
       PVector pixPosOffset = new PVector(ox, oy, oz);
       
       
       // Derive normal deviation
-      color normCol = map.pixels[x + y * lightBuffer.width];    // This is a tiny bit faster than get(x,y)
+      color normCol = map.pixels[i];    // This is a tiny bit faster than get(x,y)
       float normColR = map(red(normCol),  0, 255,  -1, 1);
       float normColG = map(green(normCol),  0, 255,  -1, 1);
       float normColB = map(blue(normCol),  0, 255,  -1, 1);
@@ -117,7 +120,7 @@ class NormalMap
       // Alter normal vector according to map rotation
       PVector normalRotVector = new PVector(normalVector.x, normalVector.y);
       normalRotVector.rotate(-ang);
-      normalVector.set(normalRotVector.x, normalRotVector.y, normalVector.z);
+      normalVector.set(normalRotVector.x, normalRotVector.y, normalVector.z);  // Retains original Z
       
       
       // Process lights
@@ -155,6 +158,8 @@ class NormalMap
     
     // Complete operations
     lightBuffer.updatePixels();
+    
+    lightBuffer.endDraw();
   }
   // render
   
@@ -163,7 +168,9 @@ class NormalMap
   // Reset light map parameters to be compatible with normal map
   {
     // Create draw buffer
-    lightBuffer = createGraphics(map.width, map.height, P2D);
+    // This MUST be a JAVA2D or P3D buffer for some reason
+    // The P2D buffer scales. No reason. It just does.
+    lightBuffer = createGraphics(map.width, map.height, P3D);
     lightBuffer.beginDraw();
     lightBuffer.clear();
     lightBuffer.endDraw();

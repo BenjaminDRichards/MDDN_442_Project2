@@ -279,7 +279,7 @@ class ParticleSpriteNormalMap extends ParticleSprite
       rotOffset.mult(scalar);
       normalMap.pos.set(pos.x + rotOffset.x, pos.y + rotOffset.y, pos.z);
       normalMap.ang = ang.z;
-      normalMap.scalar = scalar * normalMap.scalar_to_master;
+      normalMap.scalar = scalar * img.width / (float)normalMap.map.width;  // Allows different resolutions of map
       
       //
       // Disable this for fast diagnostic view

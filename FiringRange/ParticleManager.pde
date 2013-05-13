@@ -75,7 +75,7 @@ class ParticleManager
     cMap.clear();
     while( i.hasNext() )
     {
-      ParticleSpriteNormalMap p = (ParticleSpriteNormalMap) i.next();
+      Ship p = (Ship) i.next();
       // Run collision rendering on ship list
       p.renderCollisionData(cMap);
       
@@ -92,6 +92,23 @@ class ParticleManager
       {
         // Out of bounds, remove
         p.pleaseRemove = true;
+      }
+      
+      // Manage death
+      if(p.pleaseRemove)
+      {
+        pShipList.remove(p);
+        
+        // Remove emitters
+        Iterator j = p.emitters.iterator();
+        while( j.hasNext() )
+        {
+          // Get emitter
+          Emitter e = (Emitter) j.next();
+          
+          // Deregister emitter
+          removeEmitter(e);
+        }
       }
     }
     collMap.endDraw();
@@ -149,7 +166,7 @@ class ParticleManager
         if(255 == alpha(probe))
         {
           // Solid collision
-          println("Collided with object id " + probe);
+          //println("Collided with object id " + probe);
           
           // Remove particle from shot list
           p.pleaseRemove = true;
@@ -172,7 +189,7 @@ class ParticleManager
               
               // Register impact emitter
               addEmitter(ei);
-              println("Registered emitter to id " + ship.id + " at position " + ei.pos);
+              //println("Registered emitter to id " + ship.id + " at position " + ei.pos);
               break;
             }
             if( !iShip.hasNext() )
@@ -194,6 +211,13 @@ class ParticleManager
       {
         // Out of bounds, remove
         p.pleaseRemove = true;
+      }
+      
+      // Removal
+      if(p.pleaseRemove)
+      {
+        i.remove();
+        lightMasterList.remove(p.light);
       }
     }
     
@@ -317,6 +341,15 @@ class ParticleManager
   // addLight
   
   
+  void removeShot(Shot s)
+  // Removes a shot from the scene
+  // and updates associated lighting
+  {
+    pShotList.remove(s);
+    lightMasterList.remove(s.light);
+  }
+  
+  
   void removeEmitter(Emitter e)
   // Removes an emitter from the scene
   // and updates associated lighting
@@ -325,6 +358,26 @@ class ParticleManager
     lightMasterList.remove(e.light);
   }
   // removeEmitter
+  
+  
+  void removeShip(Ship s)
+  // Removes a ship from the scene
+  // and updates associated emitters
+  {
+    pShipList.remove(s);
+    
+    // Remove emitters
+    Iterator i = s.emitters.iterator();
+    while( i.hasNext() )
+    {
+      // Get emitter
+      Emitter e = (Emitter) i.next();
+      
+      // Deregister emitter
+      removeEmitter(e);
+    }
+  }
+  // removeShip
   
 }
 // ParticleManager

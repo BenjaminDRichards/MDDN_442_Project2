@@ -240,7 +240,7 @@ class Emitter_Impact extends Emitter
     PImage pimg = (random(1.0) < 0.5)  ?  imgPuff  :  imgPuffB;  // Left or right handed poof?
     color col1 = color(255,16,192, 16);
     color col2 = color(255,255,16);
-    float conserve = 0.97;
+    float conserve = 0.99;
     float minScale = 0.25;
     float maxScale = 0.75;
     // Debris parameters

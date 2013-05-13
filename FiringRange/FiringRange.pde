@@ -1,5 +1,3 @@
-// Test timeline in GIT
-
 /*
 
 Combination testbed

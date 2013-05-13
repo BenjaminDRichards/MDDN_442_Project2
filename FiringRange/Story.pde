@@ -28,7 +28,7 @@ Includes time management.
   
   float TIMESKIP = 2;           // Number of frames to advance per iteration
                                 //  Don't set to 0!
-  float START_OFFSET = 3500;    // Fast-forward the beginning
+  float START_OFFSET = 0;       // Fast-forward the beginning
   
   // Asset tracking
   Ship ship1, ship2, ship3, ship3calf;
@@ -60,11 +60,11 @@ Includes time management.
   PImage image_hull3_break_calf_coll = loadImage("ship2_series6_BREAK_CALF_COLL_256.png");
   */
   PImage image_hull3_break_main_diff = loadImage("ship2_series6_BREAK_MAIN_DIFF.png");
-  PImage image_hull3_break_main_norm = loadImage("ship2_series6_BREAK_MAIN_NORM.png");
+  PImage image_hull3_break_main_norm = loadImage("ship2_series6_BREAK_MAIN_NORM_256.png");
   PImage image_hull3_break_main_coll = loadImage("ship2_series6_BREAK_MAIN_COLL.png");
   
   PImage image_hull3_break_calf_diff = loadImage("ship2_series6_BREAK_CALF_DIFF.png");
-  PImage image_hull3_break_calf_norm = loadImage("ship2_series6_BREAK_CALF_NORM.png");
+  PImage image_hull3_break_calf_norm = loadImage("ship2_series6_BREAK_CALF_NORM_256.png");
   PImage image_hull3_break_calf_coll = loadImage("ship2_series6_BREAK_CALF_COLL.png");
   
   // Impact assets
@@ -148,7 +148,7 @@ Includes time management.
     
     // Create environment lights
     makeEvent(1, 101);
-    /*
+    
     // Introduce a ship
     makeEvent(1200, 111);
     
@@ -165,7 +165,7 @@ Includes time management.
     
     // Intensify bombardment
     makeEvent(3300, 173);
-    */
+    
     // Introduce hero ship
     makeEvent(3600, 113);
     
@@ -259,7 +259,7 @@ Includes time management.
   {
     // Ship geometry
     
-    ship1 = new Ship(2500, 1300, 0,  -1, -0.5, 0,  image_hull3_diff, image_hull3_norm );
+    ship1 = new Ship(2500, 1300, 0,  -1, -0.5, 0,  image_hull3_diff, image_hull2_norm );
     ship1.trail = true;
     ship1.loadStencil(image_hull3_coll);
     ship1.scalar = 0.5 * TEX_SCALE;
@@ -285,9 +285,9 @@ Includes time management.
   {
     // Ship geometry
     
-    ship2 = new Ship(2500, -512, 0,  -1, 0.8, 0,  image_hull3_diff, image_hull3_norm );
+    ship2 = new Ship(2500, -512, 0,  -1, 0.8, 0,  image_hull3_diff, image_hull2_norm );
     ship2.ang.set(0, 0, -QUARTER_PI);
-    ship2.angVel.set(0,0, -0.001);
+    ship2.angVel.set(0,0, -0.004);
     ship2.loadStencil(image_hull3_coll);
     ship2.scalar = 0.6 * TEX_SCALE;
     ship2.id = #fe0112;
@@ -320,7 +320,7 @@ Includes time management.
   {
     // Ship geometry
     
-    ship3 = new Ship(2500, 0, 0,  -0.5, 0.18, 0,  image_hull3_diff, image_hull3_norm );
+    ship3 = new Ship(2500, 0, 0,  -0.5, 0.18, 0,  image_hull3_diff, image_hull2_norm );
     ship3.trail = true;
     ship3.loadStencil(image_hull3_coll);
     ship3.scalar = 1.0 * TEX_SCALE;

@@ -7,6 +7,7 @@ class Ship extends ParticleSpriteNormalMap
   // Emitter register
   ArrayList emitters;
   ArrayList emitterOffsets;
+  ArrayList emitterValidity;  // PVector array; stores (1,0,0) if unchecked, (0,1,0) if valid, (0,0,1) if invalid
   
   Ship(float px, float py, float pz, float vx, float vy, float vz, PImage img, PImage normalMap)
   {
@@ -15,6 +16,7 @@ class Ship extends ParticleSpriteNormalMap
     // Setup emitter list
     emitters = new ArrayList();
     emitterOffsets = new ArrayList();
+    emitterValidity = new ArrayList();
   }
   
   
@@ -26,11 +28,13 @@ class Ship extends ParticleSpriteNormalMap
     // Slave emitters
     Iterator i = emitters.iterator();
     Iterator io = emitterOffsets.iterator();
+    Iterator iv = emitterValidity.iterator();
     while( i.hasNext() )
     {
       // Get next information
       Emitter e = (Emitter) i.next();
       PVector offset = ((PVector)io.next()).get();
+      PVector validity = (PVector) iv.next();
       
       // Update emitter position
       conformEmitter(e, offset);
@@ -39,18 +43,27 @@ class Ship extends ParticleSpriteNormalMap
       // If the emitter needs to be ended, do it here
       
       // Validity check
-      if(frameCount % 10 == 0)
-      // Cull emitters that are attached to empty space
-      if( (4 < e.pos.x)  &&  (e.pos.x < width - 5)  &&  (4 < e.pos.y)  &&  (e.pos.y < height - 5) )
+      if( validity.y != 1)
       {
-        // That is, we are on the screen and collision maps are available
-        color probe = collMap.get( floor(e.pos.x), floor(e.pos.y) );    // Accessing system-wide collMap
-        if(alpha(probe) < 127)
+        if(frameCount % 10 == 0)
+        // Cull emitters that are attached to empty space
+        if( (4 < e.pos.x)  &&  (e.pos.x < width - 5)  &&  (4 < e.pos.y)  &&  (e.pos.y < height - 5) )
         {
-          // The probe is on translucent collision and should be culled
-          e.pleaseRemove = true;
+          // That is, we are on the screen and collision maps are thus available
+          color probe = collMap.get( floor(e.pos.x), floor(e.pos.y) );    // Accessing system-wide collMap
+          if(alpha(probe) < 127)
+          {
+            // The probe is on translucent collision and should be culled
+            validity.set(0,0,1);
+            e.pleaseRemove = true;
+          }
+          else
+          {
+            validity.set(0,1,0);
+          }
         }
       }
+      
     }
   }
   // run
@@ -76,6 +89,7 @@ class Ship extends ParticleSpriteNormalMap
   {
     emitters.add(e);
     emitterOffsets.add(offset);
+    emitterValidity.add( new PVector(1, 0, 0) );
     conformEmitter(e, offset);
   }
   // addEmitter
