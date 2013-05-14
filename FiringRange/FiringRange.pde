@@ -133,7 +133,7 @@ void draw()
   
   // Fade in / fade out
   float fadeIn = 255 - (frameCount / 4.0);
-  float fadeOut = 255 - ( (10845 * 4.0) - (frameCount / 4.0) );
+  float fadeOut = 255 - ( (11100 - 255 * 4.0) - (frameCount / 4.0) );
   float fade = max(fadeIn, fadeOut);
   if(0 < fade)
   {

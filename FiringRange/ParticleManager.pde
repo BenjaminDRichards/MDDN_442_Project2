@@ -215,11 +215,8 @@ class ParticleManager
       }
       
       // Removal
-      if(p.pleaseRemove)
-      {
-        i.remove();
-        lightMasterList.remove(p.light);
-      }
+      
+      // Removal takes place on the next frame, before simulation
     }
     
     

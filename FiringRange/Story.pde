@@ -26,7 +26,7 @@ Includes time management.
   float tickTotal;
   boolean pause;
   
-  float TIMESKIP = 2;           // Number of frames to advance per iteration
+  float TIMESKIP = 1;           // Number of frames to advance per iteration
                                 //  Don't set to 0!
   float START_OFFSET = 0;       // Fast-forward the beginning
   
