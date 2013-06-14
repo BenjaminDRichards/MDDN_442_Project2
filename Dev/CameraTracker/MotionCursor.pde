@@ -234,5 +234,35 @@ class MotionCursor
   }
   // doMoVis
   
+  
+  public void diagnose()
+  // Display moVis on main display
+  {
+    pushMatrix();
+    pushStyle();
+    
+    fill(255);
+    textAlign(LEFT, TOP);
+    translate(selBuffer.width + 8.0 * 2, 8.0);
+    image(selBuffer, 0,0);
+    text("Motion visualisation \nBrightness(6) " + (THRESH_BRI * 255.0) + "\nActivity(7) " + THRESH_REL, 0,0);
+    
+    popMatrix();
+    popStyle();
+  }
+  // diagnose
+  
+  
+  public void slideThresholdBrightness(float amt)
+  {
+    THRESH_BRI = constrain(THRESH_BRI + amt, 0.0, 1.0);
+  }
+  
+  
+  public void slideThresholdReliability(float amt)
+  {
+    THRESH_REL = constrain(THRESH_REL + amt, 0.0, 1.0);
+  }
+  
 }
 // MotionCursor
