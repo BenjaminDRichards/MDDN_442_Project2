@@ -12,17 +12,24 @@ import java.util.*;
 Story story;
 
 Ship testShip;
+PGraphics testShipSprite;
 
 
 void setup()
 {
-  size(1024, 768, JAVA2D);
+  size(1024, 768, P2D);
   
   // Setup story
   story = new Story();
   
+  // Test ship sprite
+  testShipSprite = createGraphics(64,64,P2D);
+  testShipSprite.beginDraw();
+  testShipSprite.background(255,0,0);
+  testShipSprite.endDraw();
   // Test ship code
   testShip = new Ship(new PVector(0, 50, 0), new PVector(0,0,0));
+  testShip.configureAsPreyA();
 }
 // setup
 
@@ -40,28 +47,16 @@ void draw()
   // Manage story
   story.run();
   
-  /*
-  // Debug dags
-  noStroke();
-  fill(127);
-  ArrayList dags = story.dagWorld.getAllDags();
-  Iterator i = dags.iterator();
-  while( i.hasNext() )
-  {
-    DAGTransform d = (DAGTransform) i.next();
-    pushMatrix();
-    translate(d.getWorldPosition().x, d.getWorldPosition().y);
-    rotate(d.getWorldRotation());
-    scale(d.getWorldScale().x, d.getWorldScale().y);
-    //rect(0,0, 2,2);
-    rect(-1,-1, 1,1);
-    //image(pgNull, 0,0, 2,2);
-    popMatrix();
-  }
-  */
-  
   // Test ship code
-  testShip.run(1.0);
+  testShip.run(story.tick);
+  testShip.render();
+  /*
+  // DAG visualiser
+  ArrayList dags = testShip.getRoot().getAllChildren();
+  dags.add( testShip.getRoot() );
+  dags.addAll( testShip.getFragments() );
+  debugDags(dags);
+  */
   
   // End percentile coordinates
   popMatrix();
@@ -85,6 +80,8 @@ void mouseReleased()
 void keyPressed()
 {
   // No keys yet
+  
+  if(key == ' ')  testShip.startExploding();
 }
 // keyPressed
 
@@ -103,3 +100,24 @@ float screenMouseY()
   return( mouseY * 100.0 / height );
 }
 // screenMouseX
+
+
+
+void debugDags(ArrayList dags)
+// Visualise some dags
+{
+  noStroke();
+  fill(127);
+  Iterator i = dags.iterator();
+  while( i.hasNext() )
+  {
+    DAGTransform d = (DAGTransform) i.next();
+    pushMatrix();
+    translate(d.getWorldPosition().x, d.getWorldPosition().y);
+    rotate(d.getWorldRotation());
+    scale(d.getWorldScale().x, d.getWorldScale().y);
+    rect(-0.5,-0.5, 1,1);
+    popMatrix();
+  }
+}
+// debugDags

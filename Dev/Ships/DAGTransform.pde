@@ -357,6 +357,56 @@ class DAGTransform
   // updateWorld
   
   
+  public Animator makeAnimator(DAGTransform key1, DAGTransform key2, boolean slider)
+  // Returns an animator set to drive this DAGTransform
+  {
+    // Comply flags from adagr
+    key1.useWorldSpace = useWorldSpace;
+    key1.usePX = usePX;    key1.usePY = usePY;    key1.usePZ = usePZ;
+    key1.useR = useR;
+    key1.useSX = useSX;    key1.useSY = useSY;    key1.useSZ = useSZ;
+    key2.useWorldSpace = useWorldSpace;
+    key2.usePX = usePX;    key2.usePY = usePY;    key2.usePZ = usePZ;
+    key2.useR = useR;
+    key2.useSX = useSX;    key2.useSY = useSY;    key2.useSZ = useSZ;
+    
+    // Create slider
+    Animator a = new Animator(this, key1, key2, Animator.ANIM_TWEEN_SMOOTH, 1);
+    a.useSlider(slider);
+    a.run(0);
+    
+    return( a );
+  }
+  // makeAnimator
+  
+  public Animator makeAnimator(DAGTransform key1, DAGTransform key2)
+  // Helper for non-slider animators
+  {
+    return( makeAnimator(key1, key2, false) );
+  }
+  
+  public Animator makeSlider(DAGTransform key1, DAGTransform key2)
+  // Helper for sliders
+  {
+    return( makeAnimator(key1, key2, true) );
+  }
+  
+  public Animator makeZeroSlider()
+  // Helper for a slider that slides between current status and default origin
+  {
+    // Create zero key
+    DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    // Create max key
+    PVector pos = getUsedPosition();
+    float r = getUsedRotation();
+    PVector scale = getUsedScale();
+    DAGTransform key2 = new DAGTransform(pos.x, pos.y, pos.z,  r,  scale.x, scale.y, scale.z);
+    // Make slider
+    return( makeSlider(key1, key2) );
+  }
+  // makeZeroSlider
+  
+  
   public ArrayList getChildren()
   // Gets the immediate children
   {

@@ -106,6 +106,7 @@ class Animator
       case ANIM_NOISE:
         amt = noise(amt * 0.03);
         // Does not terminate
+        break;
       case ANIM_CONSTANT:
         amt = 0.0;
         // Does not terminate
@@ -113,6 +114,7 @@ class Animator
       case ANIM_LINEAR:
         //amt = amt;
         // Does not terminate
+        break;
       default:
         break;
     }
@@ -212,6 +214,12 @@ class Animator
     return( amt );
   }
   // computeFlopOutAmount
+  
+  
+  public void setType(int type)
+  {
+    this.type = type;
+  }
   
   
   public void setDelay(float delay)
