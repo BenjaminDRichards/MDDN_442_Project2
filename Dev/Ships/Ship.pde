@@ -51,7 +51,7 @@ class Ship
     drag = 0.995;
     brake = thrust;
     turnThrust = 0.0005;
-    turnDrag = 0.99;
+    turnDrag = 0.98;
     turnBrake = turnThrust;
     
     // Destruction data
@@ -256,8 +256,6 @@ class Ship
     
     // Enable explosion systems
     exploding = true;
-    
-    // Do an initial explosion/dismemberment
   }
   // startExploding
   
@@ -308,44 +306,51 @@ class Ship
       // If it's not already broken...
       if( breakpoint.isChildOf(root) )
       {
-        // Break it off
-        breakpoint.setParentToWorld();
-        fragments.add(breakpoint);
-        
-        // Push it and the main mass apart
-        // Get separation vector and tumble
-        PVector sep = PVector.sub(breakpoint.getWorldPosition(), root.getWorldPosition());
-        float tumble = random(-0.02, 0.02);
-        // Normalize and multiply by an acceptable velocity
-        sep.normalize();
-        sep.mult( random(0.02) );
-        // Create animation
-        PVector fragmentVel = new PVector(sep.x, sep.y, sep.z);
-        PVector rootVel = PVector.fromAngle( root.getWorldRotation() );
-        rootVel.mult(rateVel);
-        fragmentVel.add(rootVel);
-        breakpoint.useWorldSpace = true;
-        breakpoint.usePX = true;  breakpoint.usePY = true;  breakpoint.usePZ = true;  breakpoint.useR = true;
-        
-        DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-        key1.snapTo(breakpoint);
-        
-        DAGTransform key2 = new DAGTransform(0,0,0, 0, 1,1,1);
-        key2.snapTo(breakpoint);
-        key2.rotate(tumble);
-        key2.moveWorld(fragmentVel.x, fragmentVel.y, fragmentVel.z);
-        
-        Animator a = breakpoint.makeAnimator(key1, key2);
-        a.setType(Animator.ANIM_LINEAR);
-        anim.add(a);
-        
-        // Do an explosion at the site
-        makeExplosion( breakpoint.getWorldPosition() );
+        breakOff(breakpoint);
       }
     }
     
   }
   // doExploding
+  
+  
+  private void breakOff(DAGTransform breakpoint)
+  {
+    // Break it off
+      breakpoint.setParentToWorld();
+      fragments.add(breakpoint);
+      
+      // Push it and the main mass apart
+      // Get separation vector and tumble
+      PVector sep = PVector.sub(breakpoint.getWorldPosition(), root.getWorldPosition());
+      float tumble = random(-0.02, 0.02);
+      // Normalize and multiply by an acceptable velocity
+      sep.normalize();
+      sep.mult( random(0.02) );
+      // Create animation
+      PVector fragmentVel = new PVector(sep.x, sep.y, sep.z);
+      PVector rootVel = PVector.fromAngle( root.getWorldRotation() );
+      rootVel.mult(rateVel);
+      fragmentVel.add(rootVel);
+      breakpoint.useWorldSpace = true;
+      breakpoint.usePX = true;  breakpoint.usePY = true;  breakpoint.usePZ = true;  breakpoint.useR = true;
+      
+      DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+      key1.snapTo(breakpoint);
+      
+      DAGTransform key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+      key2.snapTo(breakpoint);
+      key2.rotate(tumble);
+      key2.moveWorld(fragmentVel.x, fragmentVel.y, fragmentVel.z);
+      
+      Animator a = breakpoint.makeAnimator(key1, key2);
+      a.setType(Animator.ANIM_LINEAR);
+      anim.add(a);
+      
+      // Do an explosion at the site
+      makeExplosion( breakpoint.getWorldPosition() );
+  }
+  // breakOff
   
   
   private void makeExplosion(PVector pos)
@@ -356,9 +361,9 @@ class Ship
     {
       DAGTransform dag = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
       PVector vel = PVector.fromAngle( random(TWO_PI) );
-      float velScalar = 0.8 * pow( random(1), 2 );
+      float velScalar = 0.4 * pow( random(1), 2 );
       vel.mult( velScalar );
-      float ageMax = 30 * pow( random(1), 3 );
+      float ageMax = 60 * pow( random(1), 3 );
       ParticleStreak ps = new ParticleStreak(dag, vel, 0, ageMax, 1.0);
       particles.add(ps);
     }
@@ -385,10 +390,10 @@ class Ship
     // Set sliders for left turn panel
     leftThruster.useR = true;
     DAGTransform leftThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -QUARTER_PI, 1,1,1);
+    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -QUARTER_PI * 0.5, 1,1,1);
     Animator leftThruster_anim = leftThruster.makeSlider(leftThruster_key1, leftThruster_key2);
     // Register slider to internal controllers
-    animTurnLeft.add(leftThruster_anim);
+    animTurnRight.add(leftThruster_anim);
     breakpoints.add(leftThruster);
     
     // Create right turn panel
@@ -399,10 +404,10 @@ class Ship
     // Set sliders for right turn panel
     rightThruster.useR = true;
     DAGTransform rightThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, QUARTER_PI, 1,1,1);
+    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, QUARTER_PI * 0.5, 1,1,1);
     Animator rightThruster_anim = rightThruster.makeSlider(rightThruster_key1, rightThruster_key2);
     // Register slider to internal controllers
-    animTurnRight.add(rightThruster_anim);
+    animTurnLeft.add(rightThruster_anim);
     breakpoints.add(rightThruster);
     
     

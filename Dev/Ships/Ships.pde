@@ -11,8 +11,8 @@ import java.util.*;
 
 Story story;
 
-Ship testShip;
 PGraphics testShipSprite;
+ShipManager testShipManager;
 
 
 void setup()
@@ -28,8 +28,12 @@ void setup()
   testShipSprite.background(255,0,0);
   testShipSprite.endDraw();
   // Test ship code
-  testShip = new Ship(new PVector(0, 50, 0), new PVector(0,0,0));
-  testShip.configureAsPreyA();
+  testShipManager = new ShipManager();
+  for(int i = 0;  i < 8;  i++)
+  {
+    PVector pos = new PVector(random(-50,50), random(100), 0);
+    testShipManager.makeShip(pos, ShipManager.MODEL_PREY_A);
+  }
 }
 // setup
 
@@ -48,8 +52,8 @@ void draw()
   story.run();
   
   // Test ship code
-  testShip.run(story.tick);
-  testShip.render();
+  testShipManager.run(story.tick);
+  testShipManager.render();
   /*
   // DAG visualiser
   ArrayList dags = testShip.getRoot().getAllChildren();
@@ -81,7 +85,14 @@ void keyPressed()
 {
   // No keys yet
   
-  if(key == ' ')  testShip.startExploding();
+  if(key == ' ')
+  {
+    if( 0 < testShipManager.ships.size() )
+    {
+      Ship s = (Ship) testShipManager.ships.get(0);
+      s.startExploding();
+    }
+  }
 }
 // keyPressed
 

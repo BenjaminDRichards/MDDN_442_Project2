@@ -13,7 +13,6 @@ Includes time management.
 */
 {
   // Scene
-  AnimatorManager animatorManager;
   ArrayList sprites;
   boolean recording;
   
@@ -43,7 +42,6 @@ Includes time management.
     storyEvents = new ArrayList();
     
     // Setup scene
-    animatorManager = new AnimatorManager();
     sprites = new ArrayList();
     recording = false;
     
@@ -79,10 +77,6 @@ Includes time management.
         i.remove();
       }
     }
-    
-    // Run animation
-    animatorManager.run(tick);
-    
     
     // Render graphics
     render();

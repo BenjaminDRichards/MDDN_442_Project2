@@ -5,6 +5,7 @@ class StoryEvent
   int commandCode;
   float checkTime, lastCheckTime;
   boolean triggered;
+  HashMap extra;
   
   StoryEvent(float triggerTime, int commandCode)
   {
@@ -13,6 +14,7 @@ class StoryEvent
     checkTime = 0;
     lastCheckTime = -1;
     triggered = false;
+    extra = new HashMap();
   }
   
   
@@ -33,5 +35,12 @@ class StoryEvent
     else  return(false);
   }
   // isTriggered
+  
+  
+  public void addExtra(String label, Object obj)
+  {  extra.put(label, obj);  }
+  
+  public Object getExtra(String label)
+  {  return( extra.get(label) );  }
 }
 // StoryEvent
