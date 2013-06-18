@@ -8,12 +8,20 @@ class Ship
   private ArrayList sprites;      // Sprites for rendering
   
   // Navigational data
+  private int navMode;
   private DAGTransform target;
+  private ShipManager shipManager;      // Used in avoidance navigation routines
   private float rateVel, rateTurn;      // Momentum figures
   private float maxVel, maxTurn;
-  private float destinationRadius;
+  private float radius, destinationRadius;
   private float thrust, drag, brake;
   private float turnThrust, turnDrag, turnBrake;
+  private boolean wrap;
+  private PVector wrapX, wrapY;         // Dimensional bounds: low/high/range parameters
+  
+  public static final int NAV_MODE_MOUSE = 1;
+  public static final int NAV_MODE_AVOID = 2;
+  public static final int NAV_MODE_HOMING = 3;
   
   // Animation data
   ArrayList animTurnLeft, animTurnRight, animThrust, anim;
@@ -27,11 +35,16 @@ class Ship
   private float explodeTimer, explodeTimerInterval;
   private float dismemberTimer, dismemberTimerInterval;
   
+  // Military data
+  int team;
+  float age, ageMax;
   
-  Ship(PVector pos, PVector targetPos)
+  
+  Ship(PVector pos, PVector targetPos, int navMode, ShipManager shipManager)
   {
     root = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
     target = new DAGTransform(targetPos.x, targetPos.y, targetPos.z,  0,  1,1,1);
+    this.shipManager = shipManager;
     
     // Assets and animation
     sprites = new ArrayList();
@@ -42,10 +55,12 @@ class Ship
     particles = new ArrayList();
     
     // Navigation parameters
+    this.navMode = navMode;
     rateVel = 0;
     rateTurn = 0;
     maxVel = 0.1;
     maxTurn = 0.02;
+    radius = 10;
     destinationRadius = 5;
     thrust = 0.001;
     drag = 0.995;
@@ -53,6 +68,12 @@ class Ship
     turnThrust = 0.0005;
     turnDrag = 0.98;
     turnBrake = turnThrust;
+    wrap = true;
+    float margin = 1.05;
+    float xDimension = 100.0 * margin * width / height;
+    float yDimension = 100.0 * margin;
+    wrapX = new PVector(-0.5 * xDimension, 0.5 * xDimension, xDimension);  // Low bound, high bound, range
+    wrapY = new PVector(-0.5 * yDimension + 50, 0.5 * yDimension + 50, yDimension);  // Low bound, high bound, range
     
     // Destruction data
     breakpoints = new ArrayList();
@@ -63,6 +84,14 @@ class Ship
     explodeTimerInterval = 60;
     dismemberTimer = 0;
     dismemberTimerInterval = 30;
+    
+    // Military data
+    team = 0;  // Team 0 is essentially targets
+    age = 0;
+    ageMax = 180;  // This is only used for missiles
+    
+    // Position ship facing target
+    snapToFaceTarget();
   }
   
   
@@ -84,6 +113,9 @@ class Ship
     // Check explosions
     if(exploding)
       doExploding(tick);
+    
+    // Do aging
+    age += tick;
   }
   // run
   
@@ -171,6 +203,16 @@ class Ship
     PVector thrustVector = PVector.fromAngle( root.getWorldRotation() );
     thrustVector.mult(rateVel);
     root.moveLocal(thrustVector.x, thrustVector.y, thrustVector.z);
+    
+    // Wrap around activity area
+    if(wrap)
+    {
+      rpos = root.getWorldPosition();
+      if(rpos.x < wrapX.x)  root.moveWorld(wrapX.z, 0, 0);
+      else if(wrapX.y < rpos.x)  root.moveWorld(-wrapX.z, 0, 0);
+      if(rpos.y < wrapY.x)  root.moveWorld(0, wrapY.z, 0);
+      else if(wrapY.y < rpos.y)  root.moveWorld(0, -wrapY.z, 0);
+    }
   }
   // doNavigation
   
@@ -178,10 +220,74 @@ class Ship
   private void doNavTargeting()
   // Figure out where the ship is going
   {
-    // Simple mouse chaser
-    target.setWorldPosition(screenMouseX(), screenMouseY(), 0);
+    switch(navMode)
+    {
+      case NAV_MODE_MOUSE:
+        target.setWorldPosition(screenMouseX(), screenMouseY(), 0);
+        break;
+      case NAV_MODE_AVOID:
+        doNavTargetingAvoid();
+        break;
+      case NAV_MODE_HOMING:
+        doNavTargetingHoming();
+        break;
+      default:
+        break;
+    }
   }
   // doNavTargeting
+  
+  
+  private void doNavTargetingAvoid()
+  // Behaviour that avoids other ships in the manager
+  {
+    // Place the camera comfortably in front of the ship
+    target.snapTo(root);
+    target.setParent(root);
+    target.moveLocal(radius * 3.0, 0, 0);
+    target.setParentToWorld();
+    // Introduce some wiggle
+    float r = 1.0;
+    target.moveLocal( random(-r,r), random(-r,r), random(-r,r) );
+    // Look for nearby obstacles
+    float detectRadius = radius * 4.0;
+    Ship ship = shipManager.getNearestShipTo( target.getWorldPosition() );
+    if(ship != null)
+    {
+      PVector vecBetween = PVector.sub( root.getWorldPosition(),  ship.getRoot().getWorldPosition() );
+      if( vecBetween.mag() < detectRadius)
+      {
+        target.moveWorld(vecBetween.x, vecBetween.y, vecBetween.z);
+      }
+    }
+  }
+  // doNavTargetingAvoid
+  
+  
+  private void doNavTargetingHoming()
+  // Home in on the nearest enemy and explode
+  {
+    // Find nearest enemy
+    Ship enemy = shipManager.getNearestEnemyTo( root.getWorldPosition(),  team );
+    if(enemy != null)
+    {
+      target.snapTo( enemy.getRoot() );
+      // Check for proximity
+      if( enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < radius )
+      {
+        // Kill yourself
+        startExploding();
+        // Kill the enemy too
+        enemy.startExploding();
+      }
+    }
+    // Time out
+    if(ageMax < age)
+    {
+     startExploding();
+    }
+  }
+  // doNavTargetingHoming
   
   
   private void doAnimation(float tick)
@@ -410,15 +516,58 @@ class Ship
     animTurnLeft.add(rightThruster_anim);
     breakpoints.add(rightThruster);
     
-    
     // FINALISE
+    boltToRoot(hull);
+  }
+  // configureAsPreyA
+  
+  
+  public void configureAsMissileA()
+  // A basic missile, with missile behaviours
+  {
+    // Set homing behaviour
+    navMode = NAV_MODE_HOMING;
+    maxVel = 0.4;
+    maxTurn = 0.03;
+    thrust = 0.01;
+    radius = 3.0;
+    destinationRadius = 1.0;
+    explodeTimerInterval = 1.0;
+    dismemberTimerInterval = 1.0;
+    
+    // Create geometry
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    /* Setup some graphics */
+    sprites.add( new Sprite(hull, testShipSprite, 2,2, -0.5,-0.5) );
+    
+    // Finalise
+    boltToRoot(hull);
+  }
+  // configureAsMissileA
+  
+  
+  public void boltToRoot(DAGTransform hull)
+  // Attach hull to root and rotate accordingly
+  {
     // Attach hull to root
     hull.snapTo(root);
     // This is rotated away because I like to build on the Y-axis, but zero rotation is natively the X-axis
     hull.rotate(HALF_PI);
     hull.setParent(root);
   }
-  // configureAsPreyA
+  // boltToRoot
+  
+  
+  private void snapToFaceTarget()
+  {
+    PVector tpos = target.getWorldPosition();
+    PVector rpos = root.getWorldPosition();
+    PVector diff = PVector.sub(tpos, rpos);
+    PVector diff2 = new PVector(diff.x, diff.y);  // Force 2D
+    float ang = diff2.heading();
+    root.setWorldRotation(ang);
+  }
+  // snapToFaceTarget
   
   
   public DAGTransform getRoot()

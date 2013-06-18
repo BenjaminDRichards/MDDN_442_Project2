@@ -29,10 +29,12 @@ void setup()
   testShipSprite.endDraw();
   // Test ship code
   testShipManager = new ShipManager();
-  for(int i = 0;  i < 8;  i++)
+  for(int i = 0;  i < 48;  i++)
   {
     PVector pos = new PVector(random(-50,50), random(100), 0);
-    testShipManager.makeShip(pos, ShipManager.MODEL_PREY_A);
+    PVector targetPos = pos.get();
+    targetPos.add( PVector.random3D() );
+    testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A);
   }
 }
 // setup
