@@ -3,14 +3,19 @@ import java.util.*;
 class ShipManager
 // Keep all the ships in one place to provide for easy navigation
 {
-  ArrayList ships;
+  ArrayList ships, shipsNew;
   
   public static final int MODEL_PREY_A = 1;
-  public static final int MODEL_MISSILE_A = 10;
+  public static final int MODEL_GUNBOAT = 2;
+  public static final int MODEL_TURRET_MISSILE_A = 10;
+  public static final int MODEL_TURRET_BULLET_A = 11;
+  public static final int MODEL_MISSILE_A = 20;
+  public static final int MODEL_BULLET_A = 21;
   
   ShipManager()
   {
     ships = new ArrayList();
+    shipsNew = new ArrayList();
   }
   
   
@@ -23,6 +28,10 @@ class ShipManager
       s.run(tick);
       if(s.pleaseRemove)  i.remove();
     }
+    
+    // Append additions list
+    ships.addAll(shipsNew);
+    shipsNew.clear();
   }
   // run
   
@@ -42,16 +51,10 @@ class ShipManager
   // render
   
   
-  public Ship makeShip(PVector pos, PVector targetPos, int model)
+  public Ship makeShip(PVector pos, PVector targetPos, int model, int team)
   {
-    Ship ship = new Ship(pos, targetPos, Ship.NAV_MODE_AVOID, this);
-    ships.add(ship);
-    /*
-    Ship ship = new Ship(pos, targetPos, Ship.NAV_MODE_HOMING, this);
-    model = MODEL_MISSILE_A;
-    ship.team = floor( random(4) );
-    ships.add(ship);
-    */
+    Ship ship = new Ship(pos, targetPos, Ship.NAV_MODE_AVOID, this, team);
+    shipsNew.add(ship);
     
     // Configure ship model
     switch(model)
@@ -59,8 +62,20 @@ class ShipManager
       case MODEL_PREY_A:
         ship.configureAsPreyA();
         break;
+      case MODEL_GUNBOAT:
+        ship.configureAsGunboat();
+        break;
+      case MODEL_TURRET_MISSILE_A:
+        ship.configureAsTurretMissileA();
+        break;
+      case MODEL_TURRET_BULLET_A:
+        ship.configureAsTurretBulletA();
+        break;
       case MODEL_MISSILE_A:
         ship.configureAsMissileA();
+        break;
+      case MODEL_BULLET_A:
+        ship.configureAsBulletA();
         break;
       default:
         break;
@@ -110,11 +125,27 @@ class ShipManager
         {
           sCandidate = s;
           dCandidate = d;
-      }
+        }
       }
     }
     return( sCandidate );
   }
   // getNearestEnemyTo
+  
+  
+  public ArrayList getEnemiesOf(int friendlyTeam)
+  {
+    ArrayList enemies = new ArrayList();
+    Iterator i = ships.iterator();
+    while( i.hasNext() )
+    {
+      Ship s = (Ship) i.next();
+      if(s.team != friendlyTeam)
+        enemies.add(s);
+    }
+    
+    return( enemies );
+  }
+  // getEnemiesOf
 }
 // ShipManager

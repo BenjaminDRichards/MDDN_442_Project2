@@ -17,7 +17,7 @@ ShipManager testShipManager;
 
 void setup()
 {
-  size(1024, 768, P2D);
+  size(1920, 1080, P2D);
   
   // Setup story
   story = new Story();
@@ -25,7 +25,17 @@ void setup()
   // Test ship sprite
   testShipSprite = createGraphics(64,64,P2D);
   testShipSprite.beginDraw();
-  testShipSprite.background(255,0,0);
+  //testShipSprite.background(255,0,0);
+  testShipSprite.loadPixels();
+  for(int i = 0;  i < testShipSprite.pixels.length;  i++)
+  {
+    float x = i % testShipSprite.width;
+    float y = floor(i / testShipSprite.width);
+    x = x / (float) testShipSprite.width;
+    y = y / (float) testShipSprite.height;
+    testShipSprite.pixels[i] = color(255 * x, 255 * y, 0);
+  }
+  testShipSprite.updatePixels();
   testShipSprite.endDraw();
   // Test ship code
   testShipManager = new ShipManager();
@@ -34,7 +44,30 @@ void setup()
     PVector pos = new PVector(random(-50,50), random(100), 0);
     PVector targetPos = pos.get();
     targetPos.add( PVector.random3D() );
-    testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A);
+    testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
+  }
+  /*
+  {
+    // Test missile turret A
+    PVector pos = new PVector(50, 50, 0);
+    PVector targetPos = pos.get();
+    targetPos.add( new PVector(-1, 1, 0) );
+    Ship turret = testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_TURRET_MISSILE_A, 1);
+  }
+  {
+    // Test bullet turret A
+    PVector pos = new PVector(25, 50, 0);
+    PVector targetPos = pos.get();
+    targetPos.add( new PVector(0, 1, 0) );
+    Ship turret = testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_TURRET_BULLET_A, 1);
+  }
+  */
+  {
+    // Test gunboat
+    PVector pos = new PVector(0, 50, 0);
+    PVector targetPos = pos.get();
+    targetPos.add( new PVector(0, 1, 0) );
+    Ship gunboat = testShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 1);
   }
 }
 // setup
@@ -79,6 +112,24 @@ void mouseReleased()
   // Convert mouse coordinates to screen space
   float mx = screenMouseX();
   float my = screenMouseY();
+  
+  if(mouseButton == LEFT)
+  {
+    PVector pos = new PVector(mx, my, 0);
+    PVector targetPos = pos.get();
+    targetPos.add( PVector.random3D() );
+    Ship s = testShipManager.makeShip( pos, targetPos, ShipManager.MODEL_MISSILE_A, 1);
+    s.team = 1;
+  }
+  
+  if(mouseButton == RIGHT)
+  {
+    PVector pos = new PVector(mx, my, 0);
+    PVector targetPos = pos.get();
+    targetPos.add( PVector.random3D() );
+    Ship s = testShipManager.makeShip( pos, targetPos, ShipManager.MODEL_BULLET_A, 1);
+    s.team = 1;
+  }
 }
 // mouseReleased
 

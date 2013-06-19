@@ -6,6 +6,7 @@ class Ship
   // Structural data
   private DAGTransform root;      // Root transform
   private ArrayList sprites;      // Sprites for rendering
+  private ArrayList slaves;       // Sub-ships such as turrets
   
   // Navigational data
   private int navMode;
@@ -22,6 +23,8 @@ class Ship
   public static final int NAV_MODE_MOUSE = 1;
   public static final int NAV_MODE_AVOID = 2;
   public static final int NAV_MODE_HOMING = 3;
+  public static final int NAV_MODE_TURRET = 4;
+  public static final int NAV_MODE_BULLET = 5;
   
   // Animation data
   ArrayList animTurnLeft, animTurnRight, animThrust, anim;
@@ -36,11 +39,22 @@ class Ship
   private float dismemberTimer, dismemberTimerInterval;
   
   // Military data
+  boolean invulnerable;
   int team;
   float age, ageMax;
+  PVector turretRange;    // Low angle/High angle/Maximum engagement range
+  float turretAcquisitionArc;  // How wide an angle it will fire from
+  float reload, reloadTime;
+  boolean shooting;
+  float firingTime, firingTimeMax;
+  int munitionType;
+  
+  // Munition data
+  public static final int MUNITION_BULLET_A = 0;
+  public static final int MUNITION_MISSILE_A = 1;
   
   
-  Ship(PVector pos, PVector targetPos, int navMode, ShipManager shipManager)
+  Ship(PVector pos, PVector targetPos, int navMode, ShipManager shipManager, int team)
   {
     root = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
     target = new DAGTransform(targetPos.x, targetPos.y, targetPos.z,  0,  1,1,1);
@@ -48,6 +62,7 @@ class Ship
     
     // Assets and animation
     sprites = new ArrayList();
+    slaves = new ArrayList();
     animTurnLeft = new ArrayList();
     animTurnRight = new ArrayList();
     animThrust = new ArrayList();
@@ -60,7 +75,7 @@ class Ship
     rateTurn = 0;
     maxVel = 0.1;
     maxTurn = 0.02;
-    radius = 10;
+    radius = 2;
     destinationRadius = 5;
     thrust = 0.001;
     drag = 0.995;
@@ -86,9 +101,18 @@ class Ship
     dismemberTimerInterval = 30;
     
     // Military data
-    team = 0;  // Team 0 is essentially targets
+    invulnerable = false;
+    this.team = team;
     age = 0;
     ageMax = 180;  // This is only used for missiles
+    turretRange = new PVector(-HALF_PI, HALF_PI, 30);
+    turretAcquisitionArc = 0.1;
+    reload = 0;
+    reloadTime = 180;
+    shooting = false;
+    firingTime = 0;
+    firingTimeMax = 20;
+    munitionType = MUNITION_BULLET_A;
     
     // Position ship facing target
     snapToFaceTarget();
@@ -114,8 +138,24 @@ class Ship
     if(exploding)
       doExploding(tick);
     
-    // Do aging
+    // Do aging and time management
     age += tick;
+    if(!shooting)
+    {      reload += tick;    }
+    else
+    {
+      firingTime += tick;
+      if(firingTimeMax < firingTime)
+      {        shooting = false;      }
+    }
+    
+    // Do slaves
+    Iterator i = slaves.iterator();
+    while( i.hasNext() )
+    {
+      Ship slave = (Ship) i.next();
+      slave.run(tick);
+    }
   }
   // run
   
@@ -140,6 +180,14 @@ class Ship
       p.render(pg);
     }
     pg.popStyle();
+    
+    // Do slaves
+    Iterator j = slaves.iterator();
+    while( j.hasNext() )
+    {
+      Ship slave = (Ship) j.next();
+      slave.render(pg);
+    }
   }
   // render
   
@@ -228,8 +276,14 @@ class Ship
       case NAV_MODE_AVOID:
         doNavTargetingAvoid();
         break;
+      case NAV_MODE_TURRET:
+        doNavTargetingTurret();
+        break;
       case NAV_MODE_HOMING:
         doNavTargetingHoming();
+        break;
+      case NAV_MODE_BULLET:
+        doNavTargetingBullet();
         break;
       default:
         break;
@@ -244,7 +298,7 @@ class Ship
     // Place the camera comfortably in front of the ship
     target.snapTo(root);
     target.setParent(root);
-    target.moveLocal(radius * 3.0, 0, 0);
+    target.moveLocal(radius * 8.0, 0, 0);
     target.setParentToWorld();
     // Introduce some wiggle
     float r = 1.0;
@@ -255,13 +309,67 @@ class Ship
     if(ship != null)
     {
       PVector vecBetween = PVector.sub( root.getWorldPosition(),  ship.getRoot().getWorldPosition() );
-      if( vecBetween.mag() < detectRadius)
+      float otherDetectRadius = ship.radius * 4.0;
+      if( vecBetween.mag() < detectRadius + otherDetectRadius)
       {
         target.moveWorld(vecBetween.x, vecBetween.y, vecBetween.z);
       }
     }
   }
   // doNavTargetingAvoid
+  
+  
+  private void doNavTargetingTurret()
+  // A turret that aims towards hostile ships
+  {
+    // Select an enemy target within a certain arc
+    ArrayList enemies = shipManager.getEnemiesOf(team);
+    PVector rpos = root.getWorldPosition();
+    float rang = root.getWorldRotation();
+    Ship candidate = null;
+    float candidateDeviation = 0;
+    
+    Iterator i = enemies.iterator();
+    while( i.hasNext() )
+    {
+      Ship enemy = (Ship) i.next();
+      PVector enemyPos = enemy.getRoot().getWorldPosition();
+      PVector vecToEnemy = PVector.sub(enemyPos, rpos);
+      float angToEnemy = vecToEnemy.heading();
+      float angDiff = angToEnemy - rang;
+      float rangeLow = turretRange.x + root.getLocalRotation();
+      float rangeHigh = turretRange.y + root.getLocalRotation();
+      //if( turretRange.x < angToEnemy  &&  angToEnemy < turretRange.y  &&  vecToEnemy.mag() < turretRange.z )
+      //if( rangeLow < angToEnemy  &&  angToEnemy < rangeHigh  &&  vecToEnemy.mag() < turretRange.z )
+      if( vecToEnemy.mag() < turretRange.z )
+      {
+        // Valid target
+        if( candidate == null  ||  abs(angDiff) < candidateDeviation )
+        {
+          candidate = enemy;
+          candidateDeviation = abs(angDiff);
+        }
+      }
+    }
+    if(candidate != null)
+    {
+      // Target that vessel
+      target.snapTo( candidate.getRoot() );
+    }
+    else
+    {
+      // Revert to original orientation
+      target.snapTo( root );
+      PVector reAim = PVector.fromAngle( root.getWorldRotation() - root.getLocalRotation() );
+      target.moveWorld(reAim.x, reAim.y);
+    }
+    // Fire at valid targets
+    if(candidateDeviation < turretAcquisitionArc  &&  candidate != null)
+    {
+      fireWeapon();
+    }
+  }
+  // doNavTargetingTurret
   
   
   private void doNavTargetingHoming()
@@ -278,7 +386,7 @@ class Ship
         // Kill yourself
         startExploding();
         // Kill the enemy too
-        enemy.startExploding();
+        enemy.takeHit();
       }
     }
     // Time out
@@ -288,6 +396,36 @@ class Ship
     }
   }
   // doNavTargetingHoming
+  
+  
+  private void doNavTargetingBullet()
+  // Fly unaltered until you hit an enemy
+  {
+    Iterator i = shipManager.ships.iterator();
+    while( i.hasNext() )
+    {
+      Ship enemy = (Ship) i.next();
+      if(enemy.team == team)  continue;  // Don't hit friendlies
+      if(enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < enemy.radius + radius)
+      {
+        // That is, the two are close enough to collide
+        // Kill yourself
+        startExploding();
+        // Kill the enemy too
+        enemy.takeHit();
+        // Slow down, you might hit something else
+        rateVel = 0;
+        break;
+      }
+    }
+    
+    // Time out
+    if(ageMax < age)
+    {
+     startExploding();
+    }
+  }
+  // doNavTargetingBullet
   
   
   private void doAnimation(float tick)
@@ -349,6 +487,46 @@ class Ship
   // doParticles
   
   
+  public void fireWeapon()
+  // Perform aggressive emission
+  {
+    if(reloadTime < reload)
+    {
+      // Weapon is primed
+      shooting = true;
+      reload = 0;
+      firingTime = 0;
+      // Create and emit munition
+      Ship munition = null;
+      PVector pos = root.getWorldPosition().get();
+      PVector targetPos = target.getWorldPosition().get();
+      switch(munitionType)
+      {
+        case MUNITION_BULLET_A:
+          munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_BULLET_A, team);
+          break;
+        case MUNITION_MISSILE_A:
+          munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_MISSILE_A, team);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  // fireWeapon
+  
+  
+  public void takeHit()
+  // What to do if you get hit
+  {
+    if(!invulnerable)
+    {
+      startExploding();
+    }
+  }
+  // takeHit
+  
+  
   public void startExploding()
   // Initiate a sequence of events that eventually destroy the ship
   {
@@ -356,6 +534,7 @@ class Ship
     thrust = 0;
     brake = 0;
     turnThrust = 0;
+    wrap = false;      // It's no good seeing exploding ships appear unexpectedly
     animTurnLeft.clear();
     animTurnRight.clear();
     animThrust.clear();
@@ -478,6 +657,17 @@ class Ship
   
   
   
+  public void addSlave(Ship slave)
+  // Attach a ship to this one, such as a turret
+  {
+    // Attach to root (may be overridden later
+    slave.getRoot().snapTo(root);
+    slave.getRoot().setParent(root);
+    // Append to slave list
+    slaves.add(slave);
+  }
+  
+  
   public void configureAsPreyA()
   // Configures the ship as a Prey-A model
   {
@@ -522,18 +712,60 @@ class Ship
   // configureAsPreyA
   
   
-  public void configureAsMissileA()
-  // A basic missile, with missile behaviours
+  public void configureAsGunboat()
+  // A ship with guns on it
   {
-    // Set homing behaviour
-    navMode = NAV_MODE_HOMING;
-    maxVel = 0.4;
-    maxTurn = 0.03;
-    thrust = 0.01;
-    radius = 3.0;
-    destinationRadius = 1.0;
-    explodeTimerInterval = 1.0;
-    dismemberTimerInterval = 1.0;
+    // Change behaviour
+    navMode = NAV_MODE_MOUSE;
+    
+    // Create the hull
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    /* Setup some graphics */
+    sprites.add( new Sprite(hull, testShipSprite, 3,5, -0.5,-0.5) );
+    
+    // Create the turrets
+    
+    // Missile turret
+    DAGTransform mtHost = new DAGTransform(-2,2,0, -1, 1,1,1);
+    mtHost.setParent(hull);
+    /* Setup some graphics */
+    sprites.add( new Sprite(mtHost, testShipSprite, 1,1, -0.5,-0.5) );
+    // Config turret
+    Ship missileTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    missileTurret.configureAsTurretMissileA();
+    addSlave(missileTurret);
+    missileTurret.getRoot().snapTo(mtHost);
+    missileTurret.getRoot().setParent(mtHost);
+    
+    // Laser turret
+    DAGTransform ltHost = new DAGTransform(2,2,0, 1, 1,1,1);
+    ltHost.setParent(hull);
+    /* Setup some graphics */
+    sprites.add( new Sprite(ltHost, testShipSprite, 1,1, -0.5,-0.5) );
+    // Config turret
+    Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    laserTurret.configureAsTurretBulletA();
+    addSlave(laserTurret);
+    laserTurret.getRoot().snapTo(ltHost);
+    laserTurret.getRoot().setParent(ltHost);
+    
+    // Finalise
+    boltToRoot(hull);
+  }
+  // configureAsGunboat
+  
+  
+  public void configureAsTurretMissileA()
+  // This shoots missile-A munitions
+  {
+    // Set military behaviour
+    navMode = NAV_MODE_TURRET;
+    thrust = 0.0;
+    drag = 0.0;
+    turnThrust = 0.0003;
+    wrap = false;  // Parent vehicle should handle this
+    turretAcquisitionArc = turretRange.y - turretRange.x;
+    munitionType = MUNITION_MISSILE_A;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -543,7 +775,83 @@ class Ship
     // Finalise
     boltToRoot(hull);
   }
+  // configureAsTurretMissileA
+  
+  
+  public void configureAsTurretBulletA()
+  // This shoots bullet-A munitions
+  {
+    // Set military behaviour
+    navMode = NAV_MODE_TURRET;
+    thrust = 0.0;
+    drag = 0.0;
+    wrap = false;  // Parent vehicle should handle this
+    munitionType = MUNITION_BULLET_A;
+    reloadTime = 10.0;
+    
+    // Create geometry
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    /* Setup some graphics */
+    sprites.add( new Sprite(hull, testShipSprite, 2,2, -0.5,-0.5) );
+    
+    // Finalise
+    boltToRoot(hull);
+  }
+  // configureAsTurretBulletA
+  
+  
+  public void configureAsMissileA()
+  // A basic missile, with missile behaviours
+  {
+    // Set homing behaviour
+    navMode = NAV_MODE_HOMING;
+    maxVel = 0.4;
+    maxTurn = 0.06;
+    turnDrag = 1.0;  // Zero friction
+    thrust = 0.01;
+    radius = 3.0;
+    destinationRadius = 1.0;
+    explodeTimerInterval = 1.0;
+    dismemberTimerInterval = 1.0;
+    wrap = false;
+    
+    // Create geometry
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    /* Setup some graphics */
+    sprites.add( new Sprite(hull, testShipSprite, 1,2, -0.5,-0.5) );
+    
+    // Finalise
+    boltToRoot(hull);
+  }
   // configureAsMissileA
+  
+  
+  public void configureAsBulletA()
+  // A bullet
+  {
+    // Set bullet behaviour
+    navMode = NAV_MODE_BULLET;
+    maxVel = 1.0;
+    maxTurn = 0.0;
+    thrust = 0;
+    turnThrust = 0;
+    radius = 1.0;
+    rateVel = 1.0;
+    drag = 1.0;  // No friction
+    brake = 0.0;
+    explodeTimerInterval = 1.0;
+    dismemberTimerInterval = 1.0;
+    wrap = false;
+    
+    // Create geometry
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    /* Setup some graphics */
+    sprites.add( new Sprite(hull, testShipSprite, 0.5,2, -0.5,-0.5) );
+    
+    // Finalise
+    boltToRoot(hull);
+  }
+  // configureAsBulletA
   
   
   public void boltToRoot(DAGTransform hull)
