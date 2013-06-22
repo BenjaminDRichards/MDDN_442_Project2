@@ -5,14 +5,12 @@
 
 import java.util.*;
 
-PGL pgl;
 
-PShader tex, tex_normDeferrer, tex_deferLighting, tex_deferLightingImgdata, tex_deferCompositor;
-PShader tex_lightByImage;
-PGraphics lightByImageStencil;
 PImage tex_diff, tex_norm;
+RenderManager renderManager;
+ArrayList testSprites;
 
-PGraphics deferDiff, deferNorm, deferSpec, deferLight, deferEmit;
+PImage lightStencil;
 
 
 void setup()
@@ -21,53 +19,54 @@ void setup()
   //frameRate(30);
   noStroke();
   
-  // Setup shader
-  tex = loadShader("tex.frag.glsl", "tex.vert.glsl");
-  tex_normDeferrer = loadShader("tex_normDeferrer.frag.glsl", "tex.vert.glsl");
-  tex_deferLighting = loadShader("tex_deferLighting.frag.glsl", "tex.vert.glsl");
-  tex_deferLightingImgdata = loadShader("tex_deferLightingImgdata.frag.glsl", "tex.vert.glsl");
-  tex_deferCompositor = loadShader("tex_deferCompositor.frag.glsl", "tex.vert.glsl");
-  tex_lightByImage = loadShader("tex_lightByImage.frag.glsl", "tex.vert.glsl");
-  
-  // Setup draw buffers
-  PVector highRes = new PVector( width, height );
-  PVector lowRes = new PVector( highRes.x / 2.0, highRes.y / 2.0 );
-  deferDiff = createGraphics( int(highRes.x), int(highRes.y), P2D);
-  deferDiff.beginDraw();  deferDiff.clear();  deferDiff.endDraw();
-  deferNorm = createGraphics( int(highRes.x), int(highRes.y), P2D);
-  deferNorm.beginDraw();  deferNorm.noSmooth();  deferNorm.clear();  deferNorm.endDraw();
-  deferSpec = createGraphics( int(highRes.x), int(highRes.y), P2D);
-  deferSpec.beginDraw();  deferSpec.background(255);  deferSpec.endDraw();
-  deferLight = createGraphics( int(highRes.x), int(highRes.y), P2D );
-  //deferLight = createGraphics( int(lowRes.x), int(lowRes.y), P2D );
-  deferLight.beginDraw();  deferLight.clear();  deferLight.endDraw();
-  deferEmit = createGraphics( int(highRes.x), int(highRes.y), P2D);
-  deferEmit.beginDraw();  deferEmit.clear();  deferEmit.endDraw();
-  
-  
-  // Light stencil
-  lightByImageStencil = createGraphics(256,256, JAVA2D);
-  PGraphics lbis = lightByImageStencil;
-  lbis.beginDraw();
-  lbis.clear();
-  PVector lightCentre = new PVector(lbis.width / 2.0, lbis.height / 2.0, lbis.height / 2.0);
-  for(int y = 0;  y < lbis.height;  y++)
-  for(int x = 0;  x < lbis.width;  x++)
-  {
-    PVector surfaceVec = new PVector(x, y, 0);
-    PVector lightVec = PVector.sub(lightCentre, surfaceVec);
-    PVector normCol = vectorToTextureNormal(lightVec);
-    float aleph = 255.0 * lightCentre.z / lightVec.mag();  // Intensity based on distance
-    // Scale down to 0 at the edges
-    float alephMod = 1.0 - ( surfaceVec.dist( new PVector(lightCentre.x, lightCentre.y, 0) ) / (lbis.width * 0.5) );
-    aleph *= alephMod;
-    lbis.set( x, y, color(normCol.x, normCol.y, normCol.z, aleph) );
-  }
-  lbis.endDraw();
+  renderManager = new RenderManager(g);
   
   // Load and register textures
   tex_diff = loadImage("ship2_series7_diff_512.png");
   tex_norm = loadImage("ship2_series7_norm_512.png");
+  lightStencil = loadImage("lightStencil.png");
+  
+  
+  // Test sprite systems
+  
+  // Initiate temporary assets
+  PGraphics weiss = createGraphics(tex_diff.width, tex_diff.height, P2D);
+  weiss.beginDraw();
+  weiss.clear();
+  weiss.image(tex_diff, 0,0);
+  weiss.loadPixels();
+  for(int i = 0;  i < weiss.pixels.length;  i++)
+  {
+    color col = weiss.pixels[i];
+    weiss.pixels[i] = color( 255, alpha(col) );
+  }
+  weiss.updatePixels();
+  weiss.endDraw();
+  
+  PGraphics schwartz = createGraphics(tex_diff.width, tex_diff.height, P2D);
+  schwartz.beginDraw();
+  schwartz.clear();
+  schwartz.image(tex_diff, 0,0);
+  schwartz.loadPixels();
+  for(int i = 0;  i < schwartz.pixels.length;  i++)
+  {
+    color col = schwartz.pixels[i];
+    schwartz.pixels[i] = color( 0, alpha(col) );
+  }
+  schwartz.updatePixels();
+  schwartz.endDraw();
+  
+  // Initiate sprites
+  testSprites = new ArrayList();
+  for(int i = 0;  i < 64;  i++)
+  {
+    DAGTransform dag = new DAGTransform(random(width), random(height), 0,  random(TWO_PI),  1,1,1);
+    Sprite s = new Sprite(dag, tex_diff, 512, 512, -0.5, -0.5);
+    s.setSpecular(weiss);
+    s.setEmissive(schwartz);
+    s.setNormal(tex_norm);
+    testSprites.add(s);
+  }
 }
 
 
@@ -75,145 +74,35 @@ void draw()
 {
   background(64);
   
+  // Render manager test
   
-  // Test complicated stuff
-  
-  // Define transforms and data
-  PImage imgD = tex_diff;
-  PImage imgN = tex_norm;
-  PVector pos1 = new PVector(256,256);  //(mouseX, mouseY);
-  float ang = frameCount * 0.005;
-  PVector pos2 = new PVector(-imgD.width * 0.5, -imgD.height * 0.5);
-  PVector posLight = new PVector(mouseX/(float)width, 1.0 - mouseY/(float)height, 0.25);
-  
-  // Draw to diffuse buffer
-  deferDiff.beginDraw();  deferDiff.clear();
-  deferDiff.translate(pos1.x, pos1.y);
-  for(int i = 0;  i < 8;  i++)
-  {
-    deferDiff.pushMatrix();
-    deferDiff.translate(i * 128, i * 64);
-    deferDiff.rotate(ang / (float)i);
-    deferDiff.translate(pos2.x, pos2.y);
-    deferDiff.image(imgD, 0,0);
-    deferDiff.popMatrix();
-  }
-  deferDiff.endDraw();
-  
-  // Draw to normal buffer
-  deferNorm.beginDraw();  deferNorm.clear();
-  deferNorm.shader(tex_normDeferrer);
-  deferNorm.translate(pos1.x, pos1.y);
-  for(int i = 0;  i < 8;  i++)
-  {
-    deferNorm.pushMatrix();
-    deferNorm.translate(i * 128, i * 64);
-    float newAng = ang / (float)i;
-    deferNorm.rotate(newAng);
-    tex_normDeferrer.set("worldAngle", newAng);
-    deferNorm.translate(pos2.x, pos2.y);
-    deferNorm.image(imgN, 0,0);
-    deferNorm.popMatrix();
-  }
-  deferNorm.resetShader();
-  deferNorm.endDraw();
-  
-  
-  // Composit final light buffer
-  
-  // Draw to specular buffer
-  
-  // Draw to emit buffer
-  
-  // Bloom emit buffer
-  
-  // Fold down buffers
-  shader(tex_deferCompositor);
-  tex_deferCompositor.set("lightMap", deferLight);
-  tex_deferCompositor.set("emitMap", deferEmit);
-  //image(deferDiff, 0,0, width,height);
-  resetShader();
-  
-  
-  // Test light stenciling
-  
-  // Underlay
-  image(deferDiff, 0,0, width,height);
-  
-  // Clear buffer
-  deferLight.beginDraw();  deferLight.background(0);  deferLight.endDraw();
-  
-  // Set initial light parameters
-  tex_lightByImage.set("lightSpecularPower", 4.0);
-  tex_lightByImage.set("lightColor", 1.0, 0.5, 0.25, 1.0);
-  tex_lightByImage.set("lightBrightness", 0.01);
-  tex_lightByImage.set("normalMap", deferNorm);
-  tex_lightByImage.set("lightSpecularMap", deferSpec);
-  // This starts to drop below 60fps with 256 lights covering 256-pixel diameter areas
-  // Pretty good so far...
-  //
-  // Further implementation requires begin/endDraw calls, dropping acceptable count to under 64.
-  //
-  // By allowing transparent outputs in the shader, we're able to begin/end just once.
-  // This doesn't do a very good job of blending, just an alpha combination...
-  // We really want the fragments to add, not blend.
-  // But it pushes light population up near 256 again.
-  //
-  // The fragment blend function is actually accessible! Hooray!
-  // It looks great and performs happily with 256 lights.
-  deferLight.beginDraw();
-  pgl = deferLight.beginPGL();
-  pgl.blendFunc(PGL.ONE, PGL.ONE);
+  // Generate lights
   int lightPop = 256;
   for(int i = 0;  i < lightPop;  i++)
   {
     // Position stencil
-    float stencilPosOffsetAng = TWO_PI * 3 * sqrt(i / (float) lightPop);
-    PVector stencilPosOffset = new PVector( cos(stencilPosOffsetAng), sin(stencilPosOffsetAng) );
-    stencilPosOffset.mult( (512/(float)lightPop) * i);
-    PVector spo = stencilPosOffset;
-    PVector stencilPos = new PVector(mouseX + spo.x, mouseY + spo.y);
-    float stencilDiameter = 256;
-    PVector stencilCorner = new PVector(stencilPos.x - stencilDiameter / 2, stencilPos.y - stencilDiameter / 2);
+    float lightPosOffsetAng = TWO_PI * 3 * sqrt(i / (float) lightPop);
+    PVector lightPosOffset = new PVector( cos(lightPosOffsetAng), sin(lightPosOffsetAng) );
+    lightPosOffset.mult( (512/(float)lightPop) * i);
+    PVector lpo = lightPosOffset;
+    PVector lightPos = new PVector(mouseX + lpo.x, mouseY + lpo.y);
     
-    // Derive coordinates relative to submaps
-    // Because OpenGL measures from the bottom of the screen, our Y values are a little unusual
-    PVector mapScale = new PVector(stencilDiameter / (float)deferNorm.width,
-                                   -stencilDiameter / (float)deferNorm.height);
-    // The image is now correctly proportioned, but in negative space and must be corrected by (0, 1)
-    // Y values are measured from the bottom of the screen now
-    PVector mapOffset = new PVector( stencilCorner.x / (float)deferNorm.width,
-        -stencilCorner.y / (float)deferNorm.height );
-    // Correct negative position
-    mapOffset.add( new PVector(0.0, 1.0) );
-    // Set shader parameters
-    tex_lightByImage.set("mapCoordScale", mapScale.x, mapScale.y);
-    tex_lightByImage.set("mapCoordOffset", mapOffset.x, mapOffset.y);
-    tex_lightByImage.set("lightColor", abs(sin(i)), abs(sin(i * 0.7)), abs(sin(i * -3.1)), 1.0 );
+    color lcol = color(255 * abs(sin(i)), 255 * abs(sin(i * 0.7)), 255 * abs(sin(i * -3.1)), 255 * 1.0);
+    Light light = new Light(lightPos, 0.01, lcol);
     
-    // Draw light stencil
-    //deferLight.beginDraw();
-    deferLight.shader(tex_lightByImage); 
-    deferLight.pushMatrix();
-    deferLight.translate(stencilCorner.x, stencilCorner.y);
-    deferLight.image(lightByImageStencil, 0, 0, stencilDiameter, stencilDiameter);
-    deferLight.popMatrix();
-    deferLight.resetShader();
-    //deferLight.endDraw();
+    renderManager.addLight(light);
   }
-  deferLight.endDraw();
-  endPGL();
   
-  //image(deferLight, 0,0);
-  
-  // Fold down buffers
-  shader(tex_deferCompositor);
-  tex_deferCompositor.set("lightMap", deferLight);
-  tex_deferCompositor.set("emitMap", deferEmit);
-  image(deferDiff, 0,0, width,height);
-  resetShader();
-  
-  
+  // Prep sprite
+  Iterator i = testSprites.iterator();
+  while( i.hasNext() )
+  {
+    Sprite s = (Sprite) i.next();
+    s.transform.rotate(0.01);
+    renderManager.addSprite(s);
+  }
+  // Complete render management
+  renderManager.render();
   
   
   
