@@ -1,38 +1,23 @@
 /*
-Note to self:
 
-hey
-
-    HEY
-
-you should REMEMBER THIS
-
-Trying to do a one-step shader next. No deferred normal caching. 
-Just recompute the relative light positions for every sprite.
-Might have superior performance.
-Can also procure only the strongest lights for acceleration.
-
-This approach removes the need to pre-rotate and cache normal maps.
-It requires all the maps to be fed into the one shader: diffuse, specular, emit, and normal.
-Presumably we'd use diffuse as the base.
 */
 
 
 import java.util.*;
 
+PGL pgl;
+
 PShader tex, tex_normDeferrer, tex_deferLighting, tex_deferLightingImgdata, tex_deferCompositor;
+PShader tex_lightByImage;
+PGraphics lightByImageStencil;
 PImage tex_diff, tex_norm;
 
 PGraphics deferDiff, deferNorm, deferSpec, deferLight, deferEmit;
 
-PVector bufferRes;
-PGraphics bufferLightPos, bufferLightCol, bufferLightBrt;
-PGraphics lightPosBufferX, lightPosBufferY, lightPosBufferZ;
-
 
 void setup()
 {
-  size(1920, 1080, P2D);
+  size(1280, 720, P2D);
   //frameRate(30);
   noStroke();
   
@@ -42,72 +27,43 @@ void setup()
   tex_deferLighting = loadShader("tex_deferLighting.frag.glsl", "tex.vert.glsl");
   tex_deferLightingImgdata = loadShader("tex_deferLightingImgdata.frag.glsl", "tex.vert.glsl");
   tex_deferCompositor = loadShader("tex_deferCompositor.frag.glsl", "tex.vert.glsl");
+  tex_lightByImage = loadShader("tex_lightByImage.frag.glsl", "tex.vert.glsl");
   
   // Setup draw buffers
-  deferDiff = createGraphics(width, height, P2D);
+  PVector highRes = new PVector( width, height );
+  PVector lowRes = new PVector( highRes.x / 2.0, highRes.y / 2.0 );
+  deferDiff = createGraphics( int(highRes.x), int(highRes.y), P2D);
   deferDiff.beginDraw();  deferDiff.clear();  deferDiff.endDraw();
-  deferNorm = createGraphics(width, height, P2D);
-  deferNorm.beginDraw();  deferNorm.clear();  deferNorm.endDraw();
-  deferSpec = createGraphics(width, height, P2D);
+  deferNorm = createGraphics( int(highRes.x), int(highRes.y), P2D);
+  deferNorm.beginDraw();  deferNorm.noSmooth();  deferNorm.clear();  deferNorm.endDraw();
+  deferSpec = createGraphics( int(highRes.x), int(highRes.y), P2D);
   deferSpec.beginDraw();  deferSpec.background(255);  deferSpec.endDraw();
-  deferLight = createGraphics(width, height, P2D);
+  deferLight = createGraphics( int(highRes.x), int(highRes.y), P2D );
+  //deferLight = createGraphics( int(lowRes.x), int(lowRes.y), P2D );
   deferLight.beginDraw();  deferLight.clear();  deferLight.endDraw();
-  deferEmit = createGraphics(width, height, P2D);
+  deferEmit = createGraphics( int(highRes.x), int(highRes.y), P2D);
   deferEmit.beginDraw();  deferEmit.clear();  deferEmit.endDraw();
   
   
-  // Image based buffer test
-  bufferRes = new PVector(4.0, 4.0);  // 64 is about the limit, it seems - 16 is even safer
-  
-  // Buffer random lights into an image
-  bufferLightPos = createGraphics((int)bufferRes.x, (int)bufferRes.y, JAVA2D);
-  bufferLightPos.beginDraw();
-  bufferLightPos.loadPixels();
-  for(int i = 0;  i < bufferLightPos.pixels.length;  i++)
+  // Light stencil
+  lightByImageStencil = createGraphics(256,256, JAVA2D);
+  PGraphics lbis = lightByImageStencil;
+  lbis.beginDraw();
+  lbis.clear();
+  PVector lightCentre = new PVector(lbis.width / 2.0, lbis.height / 2.0, lbis.height / 2.0);
+  for(int y = 0;  y < lbis.height;  y++)
+  for(int x = 0;  x < lbis.width;  x++)
   {
-    bufferLightPos.pixels[i] = color(random(255), random(255), 8, 255);
+    PVector surfaceVec = new PVector(x, y, 0);
+    PVector lightVec = PVector.sub(lightCentre, surfaceVec);
+    PVector normCol = vectorToTextureNormal(lightVec);
+    float aleph = 255.0 * lightCentre.z / lightVec.mag();  // Intensity based on distance
+    // Scale down to 0 at the edges
+    float alephMod = 1.0 - ( surfaceVec.dist( new PVector(lightCentre.x, lightCentre.y, 0) ) / (lbis.width * 0.5) );
+    aleph *= alephMod;
+    lbis.set( x, y, color(normCol.x, normCol.y, normCol.z, aleph) );
   }
-  bufferLightPos.updatePixels();
-  bufferLightPos.endDraw();
-  
-  // Buffer random light positions into three float-capable buffers
-  lightPosBufferX = createGraphics( (int)bufferRes.x, (int)bufferRes.y, JAVA2D );
-  lightPosBufferY = createGraphics( (int)bufferRes.x, (int)bufferRes.y, JAVA2D );
-  lightPosBufferZ = createGraphics( (int)bufferRes.x, (int)bufferRes.y, JAVA2D );
-  lightPosBufferX.beginDraw();  lightPosBufferX.loadPixels();
-  lightPosBufferY.beginDraw();  lightPosBufferY.loadPixels();
-  lightPosBufferZ.beginDraw();  lightPosBufferZ.loadPixels();
-  for(int i = 0;  i < lightPosBufferX.pixels.length;  i++)
-  {
-    PVector pos = PVector.random3D();
-    splitToBuffers(pos, lightPosBufferX, lightPosBufferY, lightPosBufferZ, i);
-  }
-  lightPosBufferX.updatePixels();  lightPosBufferX.endDraw();
-  lightPosBufferY.updatePixels();  lightPosBufferY.endDraw();
-  lightPosBufferZ.updatePixels();  lightPosBufferZ.endDraw();
-  
-  // Buffer random light colours into an image
-  bufferLightCol = createGraphics((int)bufferRes.x, (int)bufferRes.y, JAVA2D);
-  bufferLightCol.beginDraw();
-  bufferLightCol.loadPixels();
-  for(int i = 0;  i < bufferLightCol.pixels.length;  i++)
-  {
-    bufferLightCol.pixels[i] = color(random(255), random(255), random(255), 255);
-  }
-  bufferLightCol.updatePixels();
-  bufferLightCol.endDraw();
-  
-  // Buffer light brightnesses into an image
-  bufferLightBrt = createGraphics((int)bufferRes.x, (int)bufferRes.y, JAVA2D);
-  bufferLightBrt.beginDraw();
-  bufferLightBrt.loadPixels();
-  for(int i = 0;  i < bufferLightBrt.pixels.length;  i++)
-  {
-    float brt = random(1.0) / (bufferRes.x * bufferRes.y);
-    bufferLightBrt.pixels[i] = packFloatToColor(brt);
-  }
-  bufferLightBrt.updatePixels();
-  bufferLightBrt.endDraw();
+  lbis.endDraw();
   
   // Load and register textures
   tex_diff = loadImage("ship2_series7_diff_512.png");
@@ -117,7 +73,7 @@ void setup()
 
 void draw()
 {
-  background(127);
+  background(64);
   
   
   // Test complicated stuff
@@ -132,63 +88,38 @@ void draw()
   
   // Draw to diffuse buffer
   deferDiff.beginDraw();  deferDiff.clear();
-  deferDiff.image(imgD, 0,0);
-  deferDiff.translate(pos1.x, pos1.y);  deferDiff.rotate(ang);  deferDiff.translate(pos2.x, pos2.y);
-  deferDiff.image(imgD, 0,0);
+  deferDiff.translate(pos1.x, pos1.y);
+  for(int i = 0;  i < 8;  i++)
+  {
+    deferDiff.pushMatrix();
+    deferDiff.translate(i * 128, i * 64);
+    deferDiff.rotate(ang / (float)i);
+    deferDiff.translate(pos2.x, pos2.y);
+    deferDiff.image(imgD, 0,0);
+    deferDiff.popMatrix();
+  }
   deferDiff.endDraw();
   
   // Draw to normal buffer
-  deferNorm.beginDraw();  deferNorm.noSmooth();  deferNorm.clear();
-    deferNorm.image(imgN, 0,0);
-  deferNorm.translate(pos1.x, pos1.y);  deferNorm.rotate(ang);  deferNorm.translate(pos2.x, pos2.y);
+  deferNorm.beginDraw();  deferNorm.clear();
   deferNorm.shader(tex_normDeferrer);
-  tex_normDeferrer.set("worldAngle", ang);
-  deferNorm.image(imgN, 0,0);
+  deferNorm.translate(pos1.x, pos1.y);
+  for(int i = 0;  i < 8;  i++)
+  {
+    deferNorm.pushMatrix();
+    deferNorm.translate(i * 128, i * 64);
+    float newAng = ang / (float)i;
+    deferNorm.rotate(newAng);
+    tex_normDeferrer.set("worldAngle", newAng);
+    deferNorm.translate(pos2.x, pos2.y);
+    deferNorm.image(imgN, 0,0);
+    deferNorm.popMatrix();
+  }
   deferNorm.resetShader();
   deferNorm.endDraw();
   
   
   // Composit final light buffer
-  
-  //Update light buffer
-  lightPosBufferX.beginDraw();  lightPosBufferX.loadPixels();
-  lightPosBufferY.beginDraw();  lightPosBufferY.loadPixels();
-  lightPosBufferZ.beginDraw();  lightPosBufferZ.loadPixels();
-  splitToBuffers(posLight, lightPosBufferX, lightPosBufferY, lightPosBufferZ, 0);
-  lightPosBufferX.updatePixels();  lightPosBufferX.endDraw();
-  lightPosBufferY.updatePixels();  lightPosBufferY.endDraw();
-  lightPosBufferZ.updatePixels();  lightPosBufferZ.endDraw();
-  bufferLightBrt.beginDraw();  bufferLightBrt.loadPixels();
-  bufferLightBrt.pixels[0] = packFloatToColor(0.1);
-  bufferLightBrt.updatePixels();  bufferLightBrt.endDraw();
-  
-  
-  deferLight.beginDraw();  deferLight.clear();
-  
-  deferLight.shader(tex_deferLightingImgdata);
-  tex_deferLightingImgdata.set("srcAspectRatio", (float)deferLight.height / (float)deferLight.width);
-  tex_deferLightingImgdata.set("lightFalloffPower", 2.0);
-  tex_deferLightingImgdata.set("lightSpecularPower", 4.0);
-  tex_deferLightingImgdata.set("lightSpecularBlend", deferSpec);
-  tex_deferLightingImgdata.set("lightBufferDimensions", (float)bufferLightPos.width, (float)bufferLightPos.height);
-  tex_deferLightingImgdata.set("lightPosBufferX", lightPosBufferX);
-  tex_deferLightingImgdata.set("lightPosBufferY", lightPosBufferY);
-  tex_deferLightingImgdata.set("lightPosBufferZ", lightPosBufferZ);
-  tex_deferLightingImgdata.set("lightColBuffer", bufferLightCol);
-  tex_deferLightingImgdata.set("lightBrtBuffer", bufferLightBrt);
-  
-  deferLight.image(deferNorm, 0,0);
-  
-  deferLight.endDraw();
-  
-  // Diagnose input buffers
-  pushMatrix();
-  image(bufferLightPos, 0,0, 64, 64);
-  translate(0, 64);
-  image(bufferLightCol, 0,0, 64, 64);
-  translate(0, 64);
-  image(bufferLightBrt, 0,0, 64, 64);
-  popMatrix();
   
   // Draw to specular buffer
   
@@ -200,8 +131,90 @@ void draw()
   shader(tex_deferCompositor);
   tex_deferCompositor.set("lightMap", deferLight);
   tex_deferCompositor.set("emitMap", deferEmit);
-  image(deferDiff, 0,0);
+  //image(deferDiff, 0,0, width,height);
   resetShader();
+  
+  
+  // Test light stenciling
+  
+  // Underlay
+  image(deferDiff, 0,0, width,height);
+  
+  // Clear buffer
+  deferLight.beginDraw();  deferLight.background(0);  deferLight.endDraw();
+  
+  // Set initial light parameters
+  tex_lightByImage.set("lightSpecularPower", 4.0);
+  tex_lightByImage.set("lightColor", 1.0, 0.5, 0.25, 1.0);
+  tex_lightByImage.set("lightBrightness", 0.01);
+  tex_lightByImage.set("normalMap", deferNorm);
+  tex_lightByImage.set("lightSpecularMap", deferSpec);
+  // This starts to drop below 60fps with 256 lights covering 256-pixel diameter areas
+  // Pretty good so far...
+  //
+  // Further implementation requires begin/endDraw calls, dropping acceptable count to under 64.
+  //
+  // By allowing transparent outputs in the shader, we're able to begin/end just once.
+  // This doesn't do a very good job of blending, just an alpha combination...
+  // We really want the fragments to add, not blend.
+  // But it pushes light population up near 256 again.
+  //
+  // The fragment blend function is actually accessible! Hooray!
+  // It looks great and performs happily with 256 lights.
+  deferLight.beginDraw();
+  pgl = deferLight.beginPGL();
+  pgl.blendFunc(PGL.ONE, PGL.ONE);
+  int lightPop = 256;
+  for(int i = 0;  i < lightPop;  i++)
+  {
+    // Position stencil
+    float stencilPosOffsetAng = TWO_PI * 3 * sqrt(i / (float) lightPop);
+    PVector stencilPosOffset = new PVector( cos(stencilPosOffsetAng), sin(stencilPosOffsetAng) );
+    stencilPosOffset.mult( (512/(float)lightPop) * i);
+    PVector spo = stencilPosOffset;
+    PVector stencilPos = new PVector(mouseX + spo.x, mouseY + spo.y);
+    float stencilDiameter = 256;
+    PVector stencilCorner = new PVector(stencilPos.x - stencilDiameter / 2, stencilPos.y - stencilDiameter / 2);
+    
+    // Derive coordinates relative to submaps
+    // Because OpenGL measures from the bottom of the screen, our Y values are a little unusual
+    PVector mapScale = new PVector(stencilDiameter / (float)deferNorm.width,
+                                   -stencilDiameter / (float)deferNorm.height);
+    // The image is now correctly proportioned, but in negative space and must be corrected by (0, 1)
+    // Y values are measured from the bottom of the screen now
+    PVector mapOffset = new PVector( stencilCorner.x / (float)deferNorm.width,
+        -stencilCorner.y / (float)deferNorm.height );
+    // Correct negative position
+    mapOffset.add( new PVector(0.0, 1.0) );
+    // Set shader parameters
+    tex_lightByImage.set("mapCoordScale", mapScale.x, mapScale.y);
+    tex_lightByImage.set("mapCoordOffset", mapOffset.x, mapOffset.y);
+    tex_lightByImage.set("lightColor", abs(sin(i)), abs(sin(i * 0.7)), abs(sin(i * -3.1)), 1.0 );
+    
+    // Draw light stencil
+    //deferLight.beginDraw();
+    deferLight.shader(tex_lightByImage); 
+    deferLight.pushMatrix();
+    deferLight.translate(stencilCorner.x, stencilCorner.y);
+    deferLight.image(lightByImageStencil, 0, 0, stencilDiameter, stencilDiameter);
+    deferLight.popMatrix();
+    deferLight.resetShader();
+    //deferLight.endDraw();
+  }
+  deferLight.endDraw();
+  endPGL();
+  
+  //image(deferLight, 0,0);
+  
+  // Fold down buffers
+  shader(tex_deferCompositor);
+  tex_deferCompositor.set("lightMap", deferLight);
+  tex_deferCompositor.set("emitMap", deferEmit);
+  image(deferDiff, 0,0, width,height);
+  resetShader();
+  
+  
+  
   
   
   /*
@@ -236,3 +249,15 @@ void splitToBuffers(PVector vec, PGraphics b1, PGraphics b2, PGraphics b3, int i
   b3.pixels[index] = packFloatToColor(vec.z);
 }
 // splitToBuffers
+
+
+PVector vectorToTextureNormal(PVector vec)
+// Turns any vector into a normalised vector in the range 0-1
+{
+  PVector v = vec.get();
+  v.normalize();
+  v = new PVector(v.x * 0.5 + 0.5, v.y * 0.5 + 0.5, v.z * 0.5 + 0.5);
+  v.mult(255.0);
+  return( v );
+}
+// vectorToTextureNormal
