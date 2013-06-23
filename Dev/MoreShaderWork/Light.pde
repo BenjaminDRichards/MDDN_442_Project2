@@ -6,33 +6,23 @@ class Light
 //   or start/end drawing.
 {
   // Intrinsic data
-  PVector pos;
+  DAGTransform transform;
   float specularPower, lightBrightness;
   PVector lightColor;
   float mDiameter;
   float mBrightToDiam;
   
-  // Input/Output Buffers
-  //PImage normalBuffer;
-  //PImage specularBuffer;
-  //PGraphics lightBuffer;
-  //PShader shader;
-  
   // Light stencil
   PImage stencil;
   
   
-  Light(PVector pos, float lightBrightness, color lightColor)
+  Light(DAGTransform transform, float lightBrightness, color lightColor)
   {
-    this.pos = pos;
+    this.transform = transform;
     specularPower = 4.0;
     this.lightColor = new PVector( red(lightColor) / 255.0, green(lightColor) / 255.0, blue(lightColor) / 255.0 );
-    //this.normalBuffer = normalBuffer;
-    //this.specularBuffer = specularBuffer;
-    //this.lightBuffer = lightBuffer;
-    //this.shader = shader;
     
-    mBrightToDiam = 32768.0;
+    mBrightToDiam = 8192;  // Trial and error indicates this is most pleasing
     
     stencil = lightStencil;  // Loaded externally
     
@@ -46,11 +36,14 @@ class Light
     // Set shader options
     shader.set("lightSpecularPower", specularPower);
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
-    shader.set("lightBrightness", lightBrightness);
+    float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
+    shader.set("lightBrightness", scaledBrightness);
+    shader.set("worldAngle", transform.getWorldRotation() );
     shader.set("normalMap", normalBuffer);
     shader.set("lightSpecularMap", specularBuffer);
     
     // Geometry
+    PVector pos = transform.getWorldPosition();
     PVector stencilCorner = new PVector(pos.x - mDiameter / 2, pos.y - mDiameter / 2);
     // Derive coordinates relative to submaps
     // Because OpenGL measures from the bottom of the screen, our Y values are a little unusual
@@ -67,7 +60,10 @@ class Light
     // Render
     lightBuffer.shader(shader);
     lightBuffer.pushMatrix();
-    lightBuffer.translate(stencilCorner.x, stencilCorner.y);
+    //lightBuffer.translate(stencilCorner.x, stencilCorner.y);
+    lightBuffer.translate(pos.x, pos.y);
+    lightBuffer.rotate( transform.getWorldRotation() );
+    lightBuffer.translate( -mDiameter / 2.0,  -mDiameter / 2.0 );
     lightBuffer.image(stencil, 0, 0, mDiameter, mDiameter);
     lightBuffer.popMatrix();
     lightBuffer.resetShader();
@@ -78,7 +74,7 @@ class Light
   public void setBrightness(float b)
   {
     lightBrightness = b;
-    mDiameter = b * mBrightToDiam;
+    mDiameter = sqrt(b) * mBrightToDiam;
   }
   // setBrightness
 }

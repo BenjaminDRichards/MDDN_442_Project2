@@ -3,7 +3,7 @@ import java.util.*;
 class RenderManager
 // Handles all the complicated parts of a multipass multishader render pipeline
 {
-  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bOutput;
+  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput;
   PShader shaderNorm, shaderLight, shaderComp;
   ArrayList sprites, lights;
   
@@ -20,6 +20,7 @@ class RenderManager
     bSpecular = createGraphics(rx, ry, P2D);
     bLight = createGraphics(rx, ry, P2D);
     bEmissive = createGraphics(rx, ry, P2D);
+    bWarp = createGraphics(rx, ry, P2D);
     
     // Initialise shaders
     shaderNorm = loadShader("tex_normDeferrer.frag.glsl", "tex.vert.glsl");
@@ -51,7 +52,8 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      drawDiff( s.getDiffuse(), pos, ang, res, offset );
+      bDiffuse.tint(255, 255 * s.alphaDiff);
+      drawImage( bDiffuse, s.getDiffuse(), pos, ang, res, offset );
     }
     bDiffuse.endDraw();
     
@@ -70,7 +72,8 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      drawSpecular( s.getSpecular(), pos, ang, res, offset );
+      bSpecular.tint(255, 255 * s.alphaSpec);
+      drawImage( bSpecular, s.getSpecular(), pos, ang, res, offset );
     }
     bSpecular.endDraw();
     
@@ -89,7 +92,8 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      drawEmissive( s.getEmissive(), pos, ang, res, offset );
+      bEmissive.tint(255, 255 * s.alphaEmit);
+      drawImage( bEmissive, s.getEmissive(), pos, ang, res, offset );
     }
     bEmissive.endDraw();
     
@@ -110,10 +114,53 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      drawNormal( s.getNormal(), pos, ang, res, offset );
+      bNormal.tint(255, 255 * s.alphaNorm);
+      shaderNorm.set("worldAngle", ang);
+      drawImage( bNormal, s.getNormal(), pos, ang, res, offset );
     }
     bNormal.resetShader();
     bNormal.endDraw();
+    
+    /*
+    // Test warp shader
+    bWarp.beginDraw();
+    bWarp.shader(shaderNorm);
+    float warpAng = -1.0 + frameCount * 0.01;
+    shaderNorm.set("worldAngle", warpAng);
+    bWarp.clear();
+    
+    bWarp.pushMatrix();
+    bWarp.translate(256,256);
+    bWarp.rotate(warpAng);
+    bWarp.translate(-256,-256);
+    bWarp.image(tex_cloakNorm, 0,0);
+    bWarp.popMatrix();
+    
+    bWarp.resetShader();
+    bWarp.endDraw();
+    */
+    // Warp pass
+    bWarp.beginDraw();
+    // SET SHADER
+    bWarp.shader(shaderNorm);
+    bWarp.clear();
+    Iterator iW = sprites.iterator();
+    while( iW.hasNext() )
+    {
+      Sprite s = (Sprite) iW.next();
+      if( s.getWarp() == null )  continue;
+      // Decode geometry
+      PVector pos = s.transform.getWorldPosition();
+      float ang = s.transform.getWorldRotation();
+      PVector res = new PVector(s.coverageX, s.coverageY);
+      PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
+      // Render
+      bWarp.tint(255, 255 * s.alphaWarp);
+      shaderNorm.set("worldAngle", ang);
+      drawImage( bWarp, s.getWarp(), pos, ang, res, offset );
+    }
+    bWarp.resetShader();
+    bWarp.endDraw();
     
     
     // Apply lights
@@ -139,6 +186,8 @@ class RenderManager
     // Composite into output map
     shaderComp.set("lightMap", bLight);
     shaderComp.set("emitMap", bEmissive);
+    shaderComp.set("warpMap", bWarp);
+    shaderComp.set("aspectRatioCorrection", bOutput.height / (float) bOutput.width,  1.0);
     bOutput.shader(shaderComp);
     bOutput.image(bDiffuse, 0,0, bOutput.width, bOutput.height);
     bOutput.resetShader();
@@ -151,63 +200,17 @@ class RenderManager
   // finaliseRender
   
   
-  public void drawDiff(PImage img, PVector pos, float ang, PVector res, PVector offset)
+  public void drawImage(PGraphics canvas, PImage img, PVector pos, float ang, PVector res, PVector offset)
   {
     // Coordinate conversion goes here
     
-    bDiffuse.pushMatrix();
-    bDiffuse.translate(pos.x, pos.y);
-    bDiffuse.rotate(ang);
-    bDiffuse.translate(offset.x, offset.y);
-    bDiffuse.image(img, 0,0, res.x, res.y);
-    bDiffuse.popMatrix();
+    canvas.pushMatrix();
+    canvas.translate(pos.x, pos.y);
+    canvas.rotate(ang);
+    canvas.translate(offset.x, offset.y);
+    canvas.image(img, 0,0, res.x, res.y);
+    canvas.popMatrix();
   }
-  // drawDiff
-  
-  
-  public void drawSpecular(PImage img, PVector pos, float ang, PVector res, PVector offset)
-  {
-    // Coordinate conversion goes here
-    
-    bSpecular.pushMatrix();
-    bSpecular.translate(pos.x, pos.y);
-    bSpecular.rotate(ang);
-    bSpecular.translate(offset.x, offset.y);
-    bSpecular.image(img, 0,0, res.x, res.y);
-    bSpecular.popMatrix();
-  }
-  // drawSpecular
-  
-  
-  public void drawEmissive(PImage img, PVector pos, float ang, PVector res, PVector offset)
-  {
-    // Coordinate conversion goes here
-    
-    bEmissive.pushMatrix();
-    bEmissive.translate(pos.x, pos.y);
-    bEmissive.rotate(ang);
-    bEmissive.translate(offset.x, offset.y);
-    bEmissive.image(img, 0,0, res.x, res.y);
-    bEmissive.popMatrix();
-  }
-  // drawEmissive
-  
-  
-  public void drawNormal(PImage img, PVector pos, float ang, PVector res, PVector offset)
-  {
-    // Coordinate conversion goes here
-    
-    // Shader effects
-    shaderNorm.set("worldAngle", ang);
-    
-    bNormal.pushMatrix();
-    bNormal.translate(pos.x, pos.y);
-    bNormal.rotate(ang);
-    bNormal.translate(offset.x, offset.y);
-    bNormal.image(img, 0,0, res.x, res.y);
-    bNormal.popMatrix();
-  }
-  // drawNormal
   
   
   public void addLight(Light light)

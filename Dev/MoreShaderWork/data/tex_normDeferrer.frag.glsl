@@ -39,5 +39,5 @@ void main() {
   // Remap back into 0,1
   normalMapValue = (normalMapValue - normalAdder) / normalScalar;
   
-  gl_FragColor = normalMapValue;
+  gl_FragColor = normalMapValue * vertColor;
 }

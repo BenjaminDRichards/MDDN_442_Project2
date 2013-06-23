@@ -6,7 +6,7 @@
 import java.util.*;
 
 
-PImage tex_diff, tex_norm;
+PImage tex_diff, tex_norm, tex_cloakNorm;
 RenderManager renderManager;
 ArrayList testSprites;
 
@@ -24,7 +24,8 @@ void setup()
   // Load and register textures
   tex_diff = loadImage("ship2_series7_diff_512.png");
   tex_norm = loadImage("ship2_series7_norm_512.png");
-  lightStencil = loadImage("lightStencil.png");
+  tex_cloakNorm = loadImage("ship2_series7_512_blurNormal.png");
+  lightStencil = loadImage("lightStencil16.png");
   
   
   // Test sprite systems
@@ -65,6 +66,8 @@ void setup()
     s.setSpecular(weiss);
     s.setEmissive(schwartz);
     s.setNormal(tex_norm);
+    //s.setWarp(tex_cloakNorm);
+    //s.alphaWarp = 1.0;
     testSprites.add(s);
   }
 }
@@ -77,7 +80,7 @@ void draw()
   // Render manager test
   
   // Generate lights
-  int lightPop = 256;
+  int lightPop = 64;
   for(int i = 0;  i < lightPop;  i++)
   {
     // Position stencil
@@ -86,9 +89,10 @@ void draw()
     lightPosOffset.mult( (512/(float)lightPop) * i);
     PVector lpo = lightPosOffset;
     PVector lightPos = new PVector(mouseX + lpo.x, mouseY + lpo.y);
-    
     color lcol = color(255 * abs(sin(i)), 255 * abs(sin(i * 0.7)), 255 * abs(sin(i * -3.1)), 255 * 1.0);
-    Light light = new Light(lightPos, 0.01, lcol);
+    float brightness = 0.01 * ( sin(lightPosOffsetAng + frameCount * 0.1)  + 1.0 );
+    DAGTransform dag = new DAGTransform(lightPos.x, lightPos.y, lightPos.z,  0,  1,1,1);
+    Light light = new Light(dag, brightness, lcol);
     
     renderManager.addLight(light);
   }

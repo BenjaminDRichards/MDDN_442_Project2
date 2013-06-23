@@ -22,6 +22,8 @@ uniform float lightBrightness;
 // External map data
 uniform sampler2D normalMap;
 uniform sampler2D lightSpecularMap;
+// World rotation for transforming lights
+uniform float worldAngle;
 // Remap from this transform to the map space
 // This relies on unrotated assets
 uniform vec2 mapCoordScale;
@@ -51,6 +53,14 @@ void main() {
 		// Light vector and intensity are derived from texture
 		vec4 lightVec = texture2D(texture, vertTexCoord.xy) * normalScalar + normalAdder;
 		float lightIntensity = lightVec.a * lightBrightness;
+		
+		// Counter-rotate light vector
+		float x = lightVec.x;
+		float y = lightVec.y;
+		float ang = -worldAngle;
+		x = x * ( cos(ang) - sin(ang) );
+		y = y * ( sin(ang) + cos(ang) );
+		lightVec = vec4(x, y, lightVec.z, lightVec.a);
 		
 		// Derive diffuse lighting
 		float diffValue = max( dot( lightVec, surfaceVec.xyz ),  0.0 ) * lightIntensity;
