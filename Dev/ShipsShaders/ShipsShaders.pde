@@ -142,6 +142,13 @@ void draw()
   sceneShipManager.run(story.tick);
   sceneShipManager.render(renderManager);
   
+  // Temporary warp test
+  DAGTransform warpDag = new DAGTransform(25, 50, 0,  frameCount * 0.02,  1,1,1);
+  Sprite warpSprite = new Sprite(warpDag, null, 50, 50, -0.5, -0.5);
+  warpSprite.setWarp(tex_cloakNorm);
+  warpSprite.alphaWarp = 1.0;
+  renderManager.addSprite(warpSprite);
+  
   // Perform final render
   renderManager.render();
   

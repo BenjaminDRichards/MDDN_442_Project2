@@ -70,6 +70,15 @@ void setup()
     //s.alphaWarp = 1.0;
     testSprites.add(s);
   }
+  
+  // Warp sprites
+  {
+    DAGTransform dag = new DAGTransform(width / 2, height / 2, 0,  random(TWO_PI),  1,1,1);
+    Sprite s = new Sprite(dag, null, 512, 512, -0.5, -0.5);
+    s.setWarp(tex_cloakNorm);
+    s.alphaWarp = 1.0;
+    testSprites.add(s);
+  }
 }
 
 
