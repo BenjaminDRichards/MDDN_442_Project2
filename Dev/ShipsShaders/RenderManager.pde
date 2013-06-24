@@ -3,7 +3,7 @@ import java.util.*;
 class RenderManager
 // Handles all the complicated parts of a multipass multishader render pipeline
 {
-  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput;
+  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput, bBackground;
   PShader shaderNorm, shaderLight, shaderComp;
   ArrayList sprites, lights;
   
@@ -21,11 +21,19 @@ class RenderManager
     bLight = createGraphics(rx, ry, P2D);
     bEmissive = createGraphics(rx, ry, P2D);
     bWarp = createGraphics(rx, ry, P2D);
+    bBackground = createGraphics(rx, ry, P2D);
     
     // Initialise shaders
     shaderNorm = loadShader("shaders/tex_normDeferrer.frag.glsl", "shaders/tex.vert.glsl");
     shaderLight = loadShader("shaders/tex_lightByImage.frag.glsl", "shaders/tex.vert.glsl");
     shaderComp = loadShader("shaders/tex_deferCompositor.frag.glsl", "shaders/tex.vert.glsl");
+    
+    // Fill background
+    bBackground.beginDraw();
+    bBackground.background(64);
+    bBackground.tint(255,128);
+    bBackground.image(tex_backdrop, 0,0, bBackground.width, bBackground.height);
+    bBackground.endDraw();
     
     // Init asset buffers
     sprites = new ArrayList();
@@ -124,9 +132,10 @@ class RenderManager
     
     // Warp pass
     bWarp.beginDraw();
+    // Set default state
+    bWarp.background(127, 127, 255);
     // SET SHADER
     bWarp.shader(shaderNorm);
-    bWarp.clear();
     Iterator iW = sprites.iterator();
     while( iW.hasNext() )
     {
@@ -170,6 +179,7 @@ class RenderManager
     shaderComp.set("lightMap", bLight);
     shaderComp.set("emitMap", bEmissive);
     shaderComp.set("warpMap", bWarp);
+    shaderComp.set("backgroundMap", bBackground);
     shaderComp.set("aspectRatioCorrection", bOutput.height / (float) bOutput.width,  1.0);
     bOutput.shader(shaderComp);
     bOutput.image(bDiffuse, 0,0, bOutput.width, bOutput.height);

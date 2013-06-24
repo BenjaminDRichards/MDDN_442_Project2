@@ -51,6 +51,15 @@ class Ship
   boolean shooting;
   float firingTime, firingTimeMax;
   int munitionType;
+  color colExplosion;
+  
+  // Stealth data
+  float excitement;  // This must be extracted from slave ships
+  float excitementDecay;
+  boolean cloakOnInactive;
+  boolean cloaked;
+  float cloakActivation;
+  float cloakActivationSpeed;
   
   // Munition data
   public static final int MUNITION_BULLET_A = 0;
@@ -117,6 +126,15 @@ class Ship
     firingTime = 0;
     firingTimeMax = 20;
     munitionType = MUNITION_BULLET_A;
+    colExplosion = color(127, 255, 192, 255);
+    
+    // Stealth data
+    excitement = 0;  // This must be extracted from slave ships
+    excitementDecay = 0.002;
+    cloakOnInactive = false;
+    cloaked = false;        // Communicate to slave ships
+    cloakActivation = 0.0;  // Communicate to slave ships
+    cloakActivationSpeed = 0.004;
     
     // Position ship facing target
     snapToFaceTarget();
@@ -136,7 +154,16 @@ class Ship
     // Animate particles
     doParticles(tick);
     
-    // Check weapons systems
+    // Manage excitement
+    if( 0.01 < abs(rateVel)  ||  0.001 < abs(rateTurn) )
+    {
+      // Elevate excitement
+      excitement = 1.0;
+    }
+    excitement = max(excitement - excitementDecay * tick, 0.0);
+    
+    // Operate cloaking device
+    doCloaking(tick);
     
     // Check explosions
     if(exploding)
@@ -158,6 +185,12 @@ class Ship
     while( i.hasNext() )
     {
       Ship slave = (Ship) i.next();
+      // Transfer excitement
+      excitement = max(excitement, slave.excitement);
+      slave.excitement = excitement;
+      slave.cloaked = cloaked;
+      slave.cloakActivation = cloakActivation;
+      // Run slave
       slave.run(tick);
     }
   }
@@ -359,6 +392,8 @@ class Ship
   private void doNavTargetingTurret()
   // A turret that aims towards hostile ships
   {
+    if(cloaked)  return;  // Everybody knows that cloaks draw power from the weapons array
+    
     // Select an enemy target within a certain arc
     ArrayList enemies = shipManager.getEnemiesOf(team);
     PVector rpos = root.getWorldPosition();
@@ -524,10 +559,62 @@ class Ship
   // doParticles
   
   
+  private void doCloaking(float tick)
+  {
+    if(!cloakOnInactive)  return;
+    
+    if(cloaked)
+    {
+      if(0 < excitement)
+      {
+        // Start reactivation
+        cloaked = false;
+      }
+      else
+      {
+        // Power up cloak
+        cloakActivation = min(cloakActivation + cloakActivationSpeed, 1.0);
+      }
+    }
+    else
+    {
+      if(excitement <= 0)
+      {
+        // Start cloaking
+        cloaked = true;
+      }
+      else
+      {
+        // Power down cloak
+        cloakActivation = max(cloakActivation - cloakActivationSpeed, 0.0);
+      }
+    }
+    
+    // Manage warp profiles
+    // This will override any other warp effects on sprites
+    Iterator i = sprites.iterator();
+    while( i.hasNext() )
+    {
+      float aleph = 1 - cloakActivation;
+      float baseAlpha = 3 * pow(aleph, 2) - 2 * pow(aleph, 3);
+      float warpBase = aleph < 0.5  ?  aleph * 2  :  2 - aleph * 2;
+      float warpAlpha = 3 * pow(warpBase, 2) - 2 * pow(warpBase, 3);
+      
+      Sprite s = (Sprite) i.next();
+      s.alphaDiff = baseAlpha;
+      s.alphaNorm = baseAlpha;
+      s.alphaSpec = baseAlpha;
+      s.alphaEmit = baseAlpha;
+      s.alphaWarp = warpAlpha;  // It turns on, then off
+    }
+  }
+  // doCloaking
+  
+  
   public void fireWeapon()
   // Perform aggressive emission
   {
-    if(reloadTime < reload)
+    if(reloadTime < reload  &&  !cloaked)
     {
       // Weapon is primed
       shooting = true;
@@ -548,6 +635,9 @@ class Ship
         default:
           break;
       }
+      
+      // Elevate excitement
+      excitement = 1.0;
     }
   }
   // fireWeapon
@@ -567,17 +657,21 @@ class Ship
   public void startExploding()
   // Initiate a sequence of events that eventually destroy the ship
   {
-    // Set the ship on its course: disable steering
-    thrust = 0;
-    brake = 0;
-    turnThrust = 0;
-    wrap = false;      // It's no good seeing exploding ships appear unexpectedly
-    animTurnLeft.clear();
-    animTurnRight.clear();
-    animThrust.clear();
-    
-    // Enable explosion systems
-    exploding = true;
+    if(!exploding)
+    {
+      // Set the ship on its course: disable steering
+      thrust = 0;
+      brake = 0;
+      turnThrust = 0;
+      wrap = false;      // It's no good seeing exploding ships appear unexpectedly
+      animTurnLeft.clear();
+      animTurnRight.clear();
+      animThrust.clear();
+      anim.clear();
+      
+      // Enable explosion systems
+      exploding = true;
+    }
   }
   // startExploding
   
@@ -676,8 +770,9 @@ class Ship
   
   
   private void makeExplosion(PVector pos)
-  // Emit some particles at position pos
+  // Emit some particles at position pos and flash with light
   {
+    // Create particles
     int pop = 128;
     for(int i = 0;  i < pop;  i++)
     {
@@ -689,6 +784,19 @@ class Ship
       ParticleStreak ps = new ParticleStreak(dag, vel, 0, ageMax, 1.0);
       particles.add(ps);
     }
+    
+    // Create temporary light source
+    DAGTransform dag = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
+    Light xLight = new Light( dag, 1.0, colExplosion );
+    lights.add(xLight);
+    // Animate light
+    dag.useSX = true;
+    DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    DAGTransform key2 = new DAGTransform(0,0,0, 0, 0,1,1);
+    Animator a = dag.makeAnimator(key1, key2);
+    a.setPeriod(30.0);
+    a.setType(Animator.ANIM_TWEEN_SMOOTH);
+    anim.add(a);
   }
   // makeExplosion
   
@@ -697,9 +805,13 @@ class Ship
   public void addSlave(Ship slave)
   // Attach a ship to this one, such as a turret
   {
-    // Attach to root (may be overridden later
+    // Attach to root (may be overridden later)
     slave.getRoot().snapTo(root);
     slave.getRoot().setParent(root);
+    // Comply behaviours
+    slave.wrap = false;
+    slave.team = team;
+    slave.cloakOnInactive = cloakOnInactive;
     // Append to slave list
     slaves.add(slave);
   }
@@ -713,17 +825,17 @@ class Ship
     // This makes further construction far more logical
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    Sprite spriteHull = new Sprite(hull, testShipSprite, 8,8, -0.5,-0.5);
+    Sprite spriteHull = new Sprite(hull, testShipSprite, 16,16, -0.5,-0.5);
     sprites.add( spriteHull );
     spriteHull.setDiffuse(tex_diff);
     spriteHull.setNormal(tex_norm);
     
     
     // Create left turn panel
-    DAGTransform leftThruster = new DAGTransform(-1, -2, 0, 0, 1,1,1);
+    DAGTransform leftThruster = new DAGTransform(-2, -4, 0, 0, 1,1,1);
     leftThruster.setParent(hull);
     /* Setup some graphics */
-    sprites.add( new Sprite(leftThruster, testShipSprite, 2,2, -0.5,-0.5) );
+    sprites.add( new Sprite(leftThruster, testShipSprite, 4,4, -0.5,-0.5) );
     // Set sliders for left turn panel
     leftThruster.useR = true;
     DAGTransform leftThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -734,10 +846,10 @@ class Ship
     breakpoints.add(leftThruster);
     
     // Create right turn panel
-    DAGTransform rightThruster = new DAGTransform(1, -2, 0, 0, 1,1,1);
+    DAGTransform rightThruster = new DAGTransform(2, -4, 0, 0, 1,1,1);
     rightThruster.setParent(hull);
     /* Setup some graphics */
-    sprites.add( new Sprite(rightThruster, testShipSprite, 2,2, -0.5,-0.5) );
+    sprites.add( new Sprite(rightThruster, testShipSprite, 4,4, -0.5,-0.5) );
     // Set sliders for right turn panel
     rightThruster.useR = true;
     DAGTransform rightThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -748,7 +860,7 @@ class Ship
     breakpoints.add(rightThruster);
     
     // Create front light
-    DAGTransform frontLightDag = new DAGTransform(0, -2, 0,  0,  1,1,1);
+    DAGTransform frontLightDag = new DAGTransform(0, -4, 0,  0,  1,1,1);
     frontLightDag.setParent(hull);
     Light frontLightLight = new Light( frontLightDag, 0.5, color(128, 192, 255, 255) );
     lights.add(frontLightLight);
@@ -774,19 +886,20 @@ class Ship
     // Change behaviour
     navMode = NAV_MODE_EXTERNAL;
     destinationRadius = 15.0;
+    cloakOnInactive = true;
     
     // Create the hull
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    sprites.add( new Sprite(hull, testShipSprite, 3,5, -0.5,-0.5) );
+    sprites.add( new Sprite(hull, testShipSprite, 6,10, -0.5,-0.5) );
     
     // Create the turrets
     
     // Missile turret
-    DAGTransform mtHost = new DAGTransform(-2,2,0, -1, 1,1,1);
+    DAGTransform mtHost = new DAGTransform(-4,4,0, -1, 1,1,1);
     mtHost.setParent(hull);
     /* Setup some graphics */
-    sprites.add( new Sprite(mtHost, testShipSprite, 1,1, -0.5,-0.5) );
+    sprites.add( new Sprite(mtHost, testShipSprite, 2,2, -0.5,-0.5) );
     // Config turret
     Ship missileTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
     missileTurret.configureAsTurretMissileA();
@@ -795,10 +908,10 @@ class Ship
     missileTurret.getRoot().setParent(mtHost);
     
     // Laser turret
-    DAGTransform ltHost = new DAGTransform(2,2,0, 1, 1,1,1);
+    DAGTransform ltHost = new DAGTransform(4,4,0, 1, 1,1,1);
     ltHost.setParent(hull);
     /* Setup some graphics */
-    sprites.add( new Sprite(ltHost, testShipSprite, 1,1, -0.5,-0.5) );
+    sprites.add( new Sprite(ltHost, testShipSprite, 2,2, -0.5,-0.5) );
     // Config turret
     Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
     laserTurret.configureAsTurretBulletA();
@@ -871,6 +984,7 @@ class Ship
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
     wrap = false;
+    colExplosion = color(255, 192, 127, 255);
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -899,6 +1013,7 @@ class Ship
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
     wrap = false;
+    colExplosion = color(255, 222, 96, 255);
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);

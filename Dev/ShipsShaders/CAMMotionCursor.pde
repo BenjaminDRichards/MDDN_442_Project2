@@ -19,7 +19,7 @@ class MotionCursor
     jPos = cPos.get();
     cLerp = 0.1;
     THRESH_REL = 0.01;
-    THRESH_BRI = 0.13;
+    THRESH_BRI = 0.50;
     
     // Setup motion visualisation
     selBuffer = createGraphics(160, 120, P2D);

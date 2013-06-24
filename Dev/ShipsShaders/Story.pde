@@ -111,21 +111,6 @@ Includes time management.
   
   void render(PGraphics pg)
   {
-    // Background
-    renderBackground(pg);
-    
-    // Render sprites
-    pg.pushStyle();
-    pg.tint(0);
-    Iterator iSpr = sprites.iterator();
-    while( iSpr.hasNext() )
-    {
-      Sprite sprite = (Sprite) iSpr.next();
-      sprite.render(pg);
-    }
-    pg.popStyle();
-    
-    
     // Recording
     if(recording)
     {
@@ -141,14 +126,6 @@ Includes time management.
     render(g);
   }
   // render
-  
-  
-  private void renderBackground(PGraphics pg)
-  // Paints the backdrop
-  {
-    pg.background(64);
-  }
-  // renderBackground
   
   
   

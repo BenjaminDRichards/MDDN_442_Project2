@@ -30,23 +30,8 @@ class BackgroundLearner
     this.cam = cam;
     
     // Setup canvas
-    RES = new PVector(160, 120);
-    // Temp graphics
-    canvas = createGraphics((int)RES.x, (int)RES.y, P2D);
-    canvas.beginDraw();  canvas.clear();  canvas.endDraw();
-    bgBuffer = createGraphics((int)RES.x, (int)RES.y, P2D);
-    bgBuffer.beginDraw();  bgBuffer.clear();  bgBuffer.endDraw();
-    bgBufferTemp = createGraphics((int)RES.x, (int)RES.y, P2D);
-    bgBufferTemp.beginDraw();  bgBufferTemp.clear();  bgBufferTemp.endDraw();
-    fgMask = createGraphics((int)RES.x, (int)RES.y, P2D);
-    fgMask.beginDraw();  fgMask.clear();  fgMask.endDraw();
-    fgIsolated = createGraphics((int)RES.x, (int)RES.y, P2D);
-    fgIsolated.beginDraw();  fgIsolated.clear();  fgIsolated.endDraw();
-    heat = createGraphics((int)RES.x, (int)RES.y, P2D);
-    heat.beginDraw();  heat.clear();  heat.endDraw();
-    heatIso = createGraphics((int)RES.x, (int)RES.y, P2D);
-    heatIso.beginDraw();  heatIso.clear();  heatIso.endDraw();
-    // True graphics
+    int RES_HEIGHT = 90;
+    RES = new PVector(RES_HEIGHT * width / (float)height, RES_HEIGHT);
     setupCanvases();
     
     // Load shaders
@@ -63,10 +48,10 @@ class BackgroundLearner
     
     // Set learn options
     canvasBlur = 0.01;
-    learnRate = 0.01;  // How fast does it learn?
+    learnRate = 0.5;  // How fast does it learn?
     learnTimer = 0;   // Tracker
-    heatFade = 8.0;
-    heatIsoBlur = 0.01;
+    heatFade = 32.0;
+    heatIsoBlur = 0.003;
     
     // Set threshold
     bgThreshold = 0.25;  // This might be important for localisation
@@ -222,12 +207,30 @@ class BackgroundLearner
     canvas.translate(pos.x, pos.y);
     canvas.scale(sz.x, sz.y);
     
+    // Letterboxing
+    float aspectRatio = canvas.width / (float) canvas.height;
+    float camAspectRatio = cam.width / (float) cam.height;
+    float renderWidth = canvas.width;
+    float renderHeight = canvas.height;
+    if(aspectRatio < camAspectRatio)
+    {
+      // Chop off the sides, preserving height
+      renderWidth = renderHeight * camAspectRatio;
+      canvas.translate( 0.5 * (canvas.width - renderWidth), 0.0 );
+    }
+    else if(4.0 / 3.0 < aspectRatio)
+    {
+      // Chop off the top and bottom, preserving width
+      renderHeight = renderWidth / camAspectRatio;
+      canvas.translate( 0.0, 0.5 * (canvas.height - renderHeight) );
+    }
+    
     // Setup shader
     canvas.shader(shader_inputBlur);
-    shader_inputBlur.set("blurStep",  canvasBlur * canvas.height / (float) canvas.width,  1.0 * canvasBlur);
+    shader_inputBlur.set("blurStep",  canvasBlur * cam.height / (float) cam.width,  1.0 * canvasBlur);
     
     // Getting data
-    canvas.image(cam, 0,0, canvas.width, canvas.height);
+    canvas.image(cam, 0,0, renderWidth, renderHeight);
     
     // Fuzz the data a little bit
     //canvas.filter(BLUR, canvasBlur);
@@ -350,6 +353,12 @@ class BackgroundLearner
     bgBuffer.beginDraw();
     bgBuffer.image(canvas, 0,0);
     bgBuffer.endDraw();
+    
+    // Init buffer alpha compliance space
+    bgBufferTemp = createGraphics(x, y, P2D);
+    bgBufferTemp.beginDraw();
+    bgBufferTemp.image(canvas, 0,0);
+    bgBufferTemp.endDraw();
     
     // Init mask
     fgMask = createGraphics(x, y, P2D);

@@ -22,14 +22,26 @@ BackgroundLearner bgLearn;
 MotionCursor motionCursor;
 boolean diagnoseBuffers;
 
+ArrayList sceneLights;
+
 PImage lightStencil;
 PGraphics testShipSprite;
 PImage tex_diff, tex_norm, tex_cloakNorm;
+PImage tex_backdrop;
 
 
 void setup()
 {
   size(1280, 720, P2D);
+  
+  
+  // Load resources
+  lightStencil = loadImage("lightStencil16.png");
+  
+  tex_diff = loadImage("ship2_series7_diff_512.png");
+  tex_norm = loadImage("ship2_series7_norm_512.png");
+  tex_cloakNorm = loadImage("ship2_series7_512_blurNormal.png");
+  tex_backdrop = loadImage("starscape.png");
   
   
   // Setup story
@@ -63,15 +75,18 @@ void setup()
   // Setup camera systems
   bgLearn = new BackgroundLearner(cam);
   motionCursor = new MotionCursor();
-  diagnoseBuffers = true;
+  diagnoseBuffers = false;
   
-  // Load resources
-  lightStencil = loadImage("lightStencil16.png");
-  
-  tex_diff = loadImage("ship2_series7_diff_512.png");
-  tex_norm = loadImage("ship2_series7_norm_512.png");
-  tex_cloakNorm = loadImage("ship2_series7_512_blurNormal.png");
-  
+  // Setup constant lights
+  sceneLights = new ArrayList();
+  // Directional lights
+  DAGTransform dirLightDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
+  Light ld = new Light(dirLightDag, 0.8, color(255, 222, 192, 255));
+  ld.makeDirectional( new PVector(-1, 1, 0) );
+  sceneLights.add(ld);
+  Light ld2 = new Light(dirLightDag, 0.4, color(192, 222, 255, 255));
+  ld2.makeDirectional( new PVector(1, -1, 0) );
+  sceneLights.add(ld2);
   
   
   
@@ -80,7 +95,6 @@ void setup()
   // Test ship sprite
   testShipSprite = createGraphics(64,64,P2D);
   testShipSprite.beginDraw();
-  //testShipSprite.background(255,0,0);
   testShipSprite.loadPixels();
   for(int i = 0;  i < testShipSprite.pixels.length;  i++)
   {
@@ -93,20 +107,21 @@ void setup()
   testShipSprite.updatePixels();
   testShipSprite.endDraw();
   
-  // Test ship code
+  // Ship code
   sceneShipManager = new ShipManager();
-  for(int i = 0;  i < 48;  i++)
   {
-    spawnShipPreyA();
-  }
-  {
-    // Test gunboat
+    // PLAYER VESSEL
+    // Added first, so it's always on the bottom of the stack
     PVector pos = new PVector(0, 50, 0);
     PVector targetPos = pos.get();
     targetPos.add( new PVector(0, 1, 0) );
     Ship gunboat = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 1);
     
     playerShip = gunboat;
+  }
+  for(int i = 0;  i < 16;  i++)
+  {
+    spawnShipPreyA();
   }
 }
 // setup
@@ -142,11 +157,19 @@ void draw()
   sceneShipManager.run(story.tick);
   sceneShipManager.render(renderManager);
   
+  // Do scene lights
+  Iterator iLights = sceneLights.iterator();
+  while( iLights.hasNext() )
+  {
+    Light l = (Light) iLights.next();
+    renderManager.addLight(l);
+  }
+  
   // Temporary warp test
-  DAGTransform warpDag = new DAGTransform(25, 50, 0,  frameCount * 0.02,  1,1,1);
+  DAGTransform warpDag = new DAGTransform(25, 50, 0,  story.tickTotal * 0.01,  1,1,1);
   Sprite warpSprite = new Sprite(warpDag, null, 50, 50, -0.5, -0.5);
   warpSprite.setWarp(tex_cloakNorm);
-  warpSprite.alphaWarp = 1.0;
+  warpSprite.alphaWarp = 0.5 + 0.5 * sin(story.tickTotal * 0.05);
   renderManager.addSprite(warpSprite);
   
   // Perform final render
@@ -174,7 +197,12 @@ void draw()
   Diagnostics
   */
   
-  if(frameCount % 60 == 0)  println("FPS " + frameRate);
+  if(frameCount % 60 == 0)
+  {
+    println("FPS " + frameRate);
+    //println("Cloak: " + playerShip.cloaked + ", cloakActivation " + playerShip.cloakActivation
+    //    + ", excitement " + playerShip.excitement);
+  }
 }
 // draw
 
@@ -228,8 +256,8 @@ void keyPressed()
   if( key == '4' )       {  bgLearn.slideHeatFade(1.0);  }
   else if( key == '$' )  {  bgLearn.slideHeatFade(-1.0);  }
   
-  if( key == '5' )       {  bgLearn.slideHeatIsoBlur(0.005);  }
-  else if( key == '%' )  {  bgLearn.slideHeatIsoBlur(-0.005);  }
+  if( key == '5' )       {  bgLearn.slideHeatIsoBlur(0.001);  }
+  else if( key == '%' )  {  bgLearn.slideHeatIsoBlur(-0.001);  }
   
   // Slide cursor brightness threshold
   if( key == '6' )       {  motionCursor.slideThresholdBrightness(0.01);  }
