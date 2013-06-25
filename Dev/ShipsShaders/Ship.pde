@@ -31,7 +31,7 @@ class Ship
   
   // Animation data
   ArrayList animTurnLeft, animTurnRight, animThrust, anim;
-  ArrayList particles;
+  ArrayList particles, emitters;
   
   // Destructural data
   private ArrayList breakpoints;  // Children of root that might break away during an explosion
@@ -40,6 +40,9 @@ class Ship
   public boolean pleaseRemove;
   private float explodeTimer, explodeTimerInterval;
   private float dismemberTimer, dismemberTimerInterval;
+  color colExplosion;
+  int explosionParticles;
+  ArrayList explosionTemplates;
   
   // Military data
   boolean invulnerable;
@@ -51,11 +54,11 @@ class Ship
   boolean shooting;
   float firingTime, firingTimeMax;
   int munitionType;
-  color colExplosion;
   
   // Stealth data
   float excitement;  // This must be extracted from slave ships
   float excitementDecay;
+  boolean communicateExcitement;
   boolean cloakOnInactive;
   boolean cloaked;
   float cloakActivation;
@@ -81,6 +84,7 @@ class Ship
     animThrust = new ArrayList();
     anim = new ArrayList();
     particles = new ArrayList();
+    emitters = new ArrayList();
     
     // Navigation parameters
     this.navMode = navMode;
@@ -97,7 +101,7 @@ class Ship
     turnDrag = 0.98;
     turnBrake = turnThrust;
     wrap = true;
-    float margin = 1.05;
+    float margin = 1.15;
     float xDimension = 100.0 * margin * width / height;
     float yDimension = 100.0 * margin;
     wrapX = new PVector(-0.5 * xDimension, 0.5 * xDimension, xDimension);  // Low bound, high bound, range
@@ -112,6 +116,10 @@ class Ship
     explodeTimerInterval = 60;
     dismemberTimer = 0;
     dismemberTimerInterval = 30;
+    colExplosion = color(127, 255, 192, 255);
+    explosionParticles = 512;
+    explosionTemplates = new ArrayList();
+    setupExplosionTemplatesA();
     
     // Military data
     invulnerable = false;
@@ -126,11 +134,11 @@ class Ship
     firingTime = 0;
     firingTimeMax = 20;
     munitionType = MUNITION_BULLET_A;
-    colExplosion = color(127, 255, 192, 255);
     
     // Stealth data
     excitement = 0;  // This must be extracted from slave ships
-    excitementDecay = 0.002;
+    excitementDecay = 0.004;
+    communicateExcitement = false;
     cloakOnInactive = false;
     cloaked = false;        // Communicate to slave ships
     cloakActivation = 0.0;  // Communicate to slave ships
@@ -153,6 +161,9 @@ class Ship
     
     // Animate particles
     doParticles(tick);
+    
+    // Run emitters
+    doEmitters(tick);
     
     // Manage excitement
     if( 0.01 < abs(rateVel)  ||  0.001 < abs(rateTurn) )
@@ -185,13 +196,16 @@ class Ship
     while( i.hasNext() )
     {
       Ship slave = (Ship) i.next();
-      // Transfer excitement
-      excitement = max(excitement, slave.excitement);
-      slave.excitement = excitement;
-      slave.cloaked = cloaked;
-      slave.cloakActivation = cloakActivation;
       // Run slave
       slave.run(tick);
+      // Transfer excitement
+      if(communicateExcitement)
+      {
+        excitement = max(excitement, slave.excitement);
+        slave.excitement = excitement;
+      }
+      slave.cloaked = cloaked;
+      slave.cloakActivation = cloakActivation;
     }
   }
   // run
@@ -223,7 +237,12 @@ class Ship
     }
     
     // Do particles
-    /* */
+    Iterator k = particles.iterator();
+    while( k.hasNext() )
+    {
+      Particle p = (Particle) k.next();
+      renderManager.addSprite(p.sprite);
+    }
   }
   // render
   
@@ -559,6 +578,19 @@ class Ship
   // doParticles
   
   
+  private void doEmitters(float tick)
+  {
+    Iterator i = emitters.iterator();
+    while( i.hasNext() )
+    {
+      ParticleEmitter pe = (ParticleEmitter) i.next();
+      ArrayList pList = pe.run(tick);
+      if( 0 < pList.size() )  emitters.addAll(pList);
+    }
+  }
+  // doEmitters
+  
+  
   private void doCloaking(float tick)
   {
     if(!cloakOnInactive)  return;
@@ -614,7 +646,7 @@ class Ship
   public void fireWeapon()
   // Perform aggressive emission
   {
-    if(reloadTime < reload  &&  !cloaked)
+    if(reloadTime < reload  &&  cloakActivation == 0)
     {
       // Weapon is primed
       shooting = true;
@@ -739,7 +771,10 @@ class Ship
       // Push it and the main mass apart
       // Get separation vector and tumble
       PVector sep = PVector.sub(breakpoint.getWorldPosition(), root.getWorldPosition());
-      float tumble = random(-0.02, 0.02);
+      PVector randDir = PVector.random3D();
+      randDir.mult( sep.mag() );
+      sep.add(randDir);
+      float tumble = random(-0.04, 0.04);
       // Normalize and multiply by an acceptable velocity
       sep.normalize();
       sep.mult( random(0.02) );
@@ -765,6 +800,9 @@ class Ship
       
       // Do an explosion at the site
       makeExplosion( breakpoint.getWorldPosition() );
+      
+      // Accelerate dismemberment
+      dismemberTimerInterval *= 0.8;
   }
   // breakOff
   
@@ -773,30 +811,44 @@ class Ship
   // Emit some particles at position pos and flash with light
   {
     // Create particles
-    int pop = 128;
+    int pop = int(random(0.5, 1.0) * explosionParticles);
+    DAGTransform dagPE = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
+    ParticleEmitter pe = new ParticleEmitter(dagPE, null, 0);
+    Iterator iPE = explosionTemplates.iterator();
+    while( iPE.hasNext() )
+    {
+      Particle p = (Particle) iPE.next();
+      pe.addTemplate(p);
+    }
     for(int i = 0;  i < pop;  i++)
     {
-      DAGTransform dag = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
-      PVector vel = PVector.fromAngle( random(TWO_PI) );
-      float velScalar = 0.4 * pow( random(1), 2 );
-      vel.mult( velScalar );
-      float ageMax = 60 * pow( random(1), 3 );
-      ParticleStreak ps = new ParticleStreak(dag, vel, 0, ageMax, 1.0);
-      particles.add(ps);
+      particles.add( pe.getParticle() );
     }
     
+    // Create shockwave
+    DAGTransform dagShock = new DAGTransform(pos.x, pos.y, pos.z, 0, 1,1,1);
+    Sprite sShock = new Sprite(dagShock, null, 2,2, -0.5,-0.5);
+    sShock.setWarp(fx_shockwave);
+    Particle pShock = new Particle(dagShock, sShock, new PVector(0,0,0), 0, 16);
+    particles.add(pShock);
+    pShock.disperse = true;
+    pShock.disperseSize = 24.0;
+    
     // Create temporary light source
-    DAGTransform dag = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
-    Light xLight = new Light( dag, 1.0, colExplosion );
+    DAGTransform dagLight = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
+    Light xLight = new Light( dagLight, 1.0, colExplosion );
     lights.add(xLight);
     // Animate light
-    dag.useSX = true;
+    dagLight.useSX = true;
     DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
     DAGTransform key2 = new DAGTransform(0,0,0, 0, 0,1,1);
-    Animator a = dag.makeAnimator(key1, key2);
-    a.setPeriod(30.0);
+    Animator a = dagLight.makeAnimator(key1, key2);
+    a.setPeriod(60.0);
     a.setType(Animator.ANIM_TWEEN_SMOOTH);
     anim.add(a);
+    
+    // Accelerate explosion rate
+    explodeTimerInterval *= 0.8;
   }
   // makeExplosion
   
@@ -985,6 +1037,7 @@ class Ship
     dismemberTimerInterval = 1.0;
     wrap = false;
     colExplosion = color(255, 192, 127, 255);
+    setupExplosionTemplatesB();
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1014,6 +1067,7 @@ class Ship
     dismemberTimerInterval = 1.0;
     wrap = false;
     colExplosion = color(255, 222, 96, 255);
+    setupExplosionTemplatesB();
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1048,6 +1102,199 @@ class Ship
     root.setWorldRotation(ang);
   }
   // snapToFaceTarget
+  
+  
+  public void setupExplosionTemplatesA()
+  // Makes the default cool explosion pieces
+  {
+    explosionTemplates.clear();
+    
+    // Streak particle
+    DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    Sprite s = new Sprite(dag, null, 0.35, 0.35, -0.5, -0.5);
+    PVector vel = new PVector(0.8, 0, 0);
+    float spin = 0;
+    float ageMax = 30;
+    Particle p = new Particle(dag, s, vel, spin, ageMax);
+    p.streak = true;
+    p.aimAlongMotion = true;
+    p.disperse = false;
+    p.sprite.setEmissive(fx_streak);
+    for(int i = 0;  i < 16;  i++)
+    {
+      explosionTemplates.add(p);  // Do it several times to get statistical prevalence
+    }
+    
+    // Ray flare 1
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s.setEmissive(fx_ray1);
+    vel = new PVector(0,0,0);
+    spin = 0;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Ray flare 2
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s.setEmissive(fx_ray2);
+    vel = new PVector(0,0,0);
+    spin = 0;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 1
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s.setEmissive(fx_puff1);
+    vel = new PVector(0.1,0,0);
+    spin = 0.04;
+    ageMax = 60;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 2
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s.setEmissive(fx_puff2);
+    vel = new PVector(0.1,0,0);
+    spin = 0.04;
+    ageMax = 60;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 3
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s.setEmissive(fx_puff3);
+    vel = new PVector(0.1,0,0);
+    spin = 0.04;
+    ageMax = 60;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Spatter
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setEmissive(fx_spatter);
+    vel = new PVector(0.1,0,0);
+    spin = 0.01;
+    ageMax = 90;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    for(int i = 0;  i < 2;  i++)
+      explosionTemplates.add(p);
+    
+    // Spatter black
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setDiffuse(fx_spatterBlack);  // A diffuse effect!
+    vel = new PVector(0.1,0,0);
+    spin = 0.01;
+    ageMax = 90;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    for(int i = 0;  i < 2;  i++)
+      explosionTemplates.add(p);
+    
+  }
+  // setupExplosionTemplatesA
+  
+  
+  public void setupExplosionTemplatesB()
+  // Player team explosions: warmer hues for missiles and plasma bolts
+  {
+    explosionTemplates.clear();
+    
+    // Streak particle
+    DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    Sprite s = new Sprite(dag, null, 0.35, 0.35, -0.5, -0.5);
+    PVector vel = new PVector(0.8, 0, 0);
+    float spin = 0;
+    float ageMax = 30;
+    Particle p = new Particle(dag, s, vel, spin, ageMax);
+    p.streak = true;
+    p.aimAlongMotion = true;
+    p.disperse = false;
+    p.sprite.setEmissive( fx_streak );
+    for(int i = 0;  i < 16;  i++)
+    {
+      explosionTemplates.add(p);  // Do it several times to get statistical prevalence
+    }
+    
+    // Ray flare 1
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s.setEmissive(fx_ray1pc);
+    vel = new PVector(0,0,0);
+    spin = 0;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Ray flare 2
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s.setEmissive(fx_ray2pc);
+    vel = new PVector(0,0,0);
+    spin = 0;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 1
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setEmissive(fx_puff1pc);
+    vel = new PVector(0.2,0,0);
+    spin = 0.04;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 2
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setEmissive(fx_puff2pc);
+    vel = new PVector(0.2,0,0);
+    spin = 0.04;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Puff 3
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setEmissive(fx_puff3pc);
+    vel = new PVector(0.2,0,0);
+    spin = 0.04;
+    ageMax = 30;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    explosionTemplates.add(p);
+    
+    // Spatter
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setEmissive(fx_spatterPc);
+    vel = new PVector(0.1,0,0);
+    spin = 0.01;
+    ageMax = 60;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    for(int i = 0;  i < 2;  i++)
+      explosionTemplates.add(p);
+    
+    // Spatter black
+    dag = new DAGTransform(0,0,0, 0, 1,1,1);
+    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s.setDiffuse(fx_spatterBlack);  // A diffuse effect!
+    vel = new PVector(0.1,0,0);
+    spin = 0.01;
+    ageMax = 60;
+    p = new Particle(dag, s, vel, spin, ageMax);
+    for(int i = 0;  i < 2;  i++)
+      explosionTemplates.add(p);
+  }
+  // setupExplosionTemplatesB
   
   
   public DAGTransform getRoot()

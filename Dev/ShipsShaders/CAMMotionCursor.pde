@@ -10,6 +10,7 @@ class MotionCursor
   private PGraphics selBuffer;   // Buffer for motion visualisation
   private PGraphics selTarget;   // Target for rendering motion visualisation
   private boolean selDraw;       // Do we draw the motion vis?
+  private PShader shaderMoVis;   // Accelerated high-quality visualiser
   float pipHeight;               // Diagnostic display parameter
   
   MotionCursor()
@@ -17,7 +18,7 @@ class MotionCursor
     // Setup defaults
     cPos = new PVector(0,0,0);
     jPos = cPos.get();
-    cLerp = 0.1;
+    cLerp = 0.05;
     THRESH_REL = 0.01;
     THRESH_BRI = 0.50;
     
@@ -25,6 +26,7 @@ class MotionCursor
     selBuffer = createGraphics(160, 120, P2D);
     selTarget = g;
     selDraw = true;
+    shaderMoVis = loadShader("shaders/camera/tex_motionVisualiser.frag.glsl", "shaders/camera/tex.vert.glsl");
     pipHeight = 64;    // Default, will be overridden
   }
   
@@ -110,52 +112,34 @@ class MotionCursor
     // Style MoVis
     selTarget.pushStyle();
     selTarget.noFill();
-    selTarget.strokeWeight(1.0);
-    selTarget.stroke(255, 192, 0, 48);
     
     // Determine scale factor
     float sx = selTarget.width / (float) selBuffer.width;
     float sy = selTarget.height / (float) selBuffer.height;
     
-    // Do per-pixel checks
-    selBuffer.loadPixels();
-    for(int i = 0;  i < selBuffer.pixels.length;  i++)
-    {
-      // Determine coords
-      int x = floor(i % selBuffer.width);
-      int y = floor(i / selBuffer.width);
-      // Scan this pixel
-      color col1 = selBuffer.pixels[i];
-      // Scan the pixel below, draw if different
-      if(y < selBuffer.height - 1)
-      {
-        // That is, we're not probing out of bounds
-        color col2 = selBuffer.pixels[i + selBuffer.width];
-        if(col1 != col2)
-        {
-          // That is, we're on an edge
-          // Draw a line between the two pixels
-          selTarget.line(x * sx, y * sy, x * sx, (y + 1) * sy);
-        }
-      }
-      // Scan the pixel to the right, draw if different
-      if(x < selBuffer.width - 1)
-      {
-        // That is, we're not probing out of bounds
-        color col3 = selBuffer.pixels[i + 1];
-        if(col1 != col3)
-        {
-          // That is, we're on an edge
-          // Draw a line between the two pixels
-          selTarget.line(x * sx, y * sy, (x + 1) * sx, y * sy);
-        }
-      }
-    }
+    // Shader border detection
+    selTarget.shader(shaderMoVis);
+    selTarget.tint(GUI_COLOR);
+    shaderMoVis.set("resolution", (float)selBuffer.width, (float)selBuffer.height);
+    selTarget.image(selBuffer, 0,0, selTarget.width, selTarget.height);
+    selTarget.resetShader();
     
     // Render cursor
-    selTarget.ellipse(cPos.x * sx, cPos.y * sy, 128,128);
-    selTarget.strokeWeight(3.0);
-    selTarget.ellipse(cPos.x * sx, cPos.y * sy, 96,96);
+    selTarget.pushMatrix();
+    selTarget.translate(cPos.x * sx, cPos.y * sy);
+    selTarget.strokeWeight(selTarget.height / 720.0);
+    selTarget.stroke(GUI_COLOR, 127);
+    selTarget.ellipse(0,0, 96,96);
+    selTarget.stroke(GUI_COLOR, 64);
+    selTarget.ellipse(0,0, 128,128);
+    
+    // Label cursor
+    selTarget.scale(0.5);
+    selTarget.fill(GUI_COLOR, 127);
+    selTarget.textAlign(LEFT, TOP);
+    String coords = (cPos.x - 0.5 * selBuffer.width) + "\n" + (cPos.x - 0.5 * selBuffer.height);
+    selTarget.text( coords, 0, 0 );
+    selTarget.popMatrix();
     
     selTarget.popStyle();
   }

@@ -36,7 +36,7 @@ class Light
     specularPower = 4.0;
     this.lightColor = new PVector( red(lightColor) / 255.0, green(lightColor) / 255.0, blue(lightColor) / 255.0 );
     
-    mBrightToDiam = 256;  // Trial and error indicates this is most pleasing
+    mBrightToDiam = 512;  // Trial and error indicates this is most pleasing
     
     stencil = lightStencil;  // Loaded externally
     
@@ -95,7 +95,6 @@ class Light
     // Render
     lightBuffer.shader(shader);
     lightBuffer.pushMatrix();
-    //lightBuffer.translate(stencilCorner.x, stencilCorner.y);
     lightBuffer.translate(pos.x, pos.y);
     //lightBuffer.rotate( transform.getWorldRotation() );
     lightBuffer.translate( -mDiameter / 2.0,  -mDiameter / 2.0 );
@@ -143,7 +142,7 @@ class Light
     
     this.dir = dir;
     
-    filler = createGraphics(64,64, P2D);
+    filler = createGraphics(8,8, P2D);
     setDir(dir);
   }
   // makeDirectional
@@ -155,63 +154,12 @@ class Light
     dir.normalize();
     color texDir = color(255 * (dir.x * 0.5 + 0.5), 255 * (dir.y * 0.5 + 0.5), 255 * (dir.z * 0.5 + 0.5), 255);
     filler.beginDraw();
-    filler.background(texDir);
+    filler.clear();
+    filler.noStroke();
+    filler.fill(texDir);
+    filler.rect(0,0, filler.width, filler.height);
     filler.endDraw();
   }
   // setDir
 }
 // Light
-
-
-
-
-class LightDirectional extends Light
-{
-  PGraphics filler;
-  PVector dir;
-  
-  LightDirectional(DAGTransform transform, float lightBrightness, color lightColor, PVector dir)
-  {
-    super(transform, lightBrightness, lightColor);
-    this.dir = dir;
-    
-    filler = createGraphics(1,1, P2D);
-    setDir(dir);
-  }
-  
-  
-  public void setDir(PVector direction)
-  {
-    dir = direction.get();
-    dir.normalize();
-    color texDir = color(255 * (dir.x * 0.5 + 0.5), 255 * (dir.y * 0.5 + 0.5), 255 * (dir.z * 0.5 + 0.5), 255);
-    filler.beginDraw();
-    filler.background(texDir);
-    filler.endDraw();
-  }
-  // setDir
-  
-  
-  public void render(PImage normalBuffer, PImage specularBuffer, PGraphics lightBuffer, PShader shader)
-  {
-    // Set shader options
-    shader.set("lightSpecularPower", specularPower);
-    shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
-    float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
-    shader.set("lightBrightness", scaledBrightness);
-    shader.set("worldAngle", 0.0 );
-    shader.set("normalMap", normalBuffer);
-    shader.set("lightSpecularMap", specularBuffer);
-    
-    // Set shader parameters
-    shader.set("mapCoordScale", 1.0, 1.0);
-    shader.set("mapCoordOffset", 0.0, 0.0);
-    
-    // Render
-    lightBuffer.shader(shader);
-    lightBuffer.image(filler, 0, 0, lightBuffer.width, lightBuffer.height);
-    lightBuffer.resetShader();
-  }
-  // render
-}
-// LightDirectional

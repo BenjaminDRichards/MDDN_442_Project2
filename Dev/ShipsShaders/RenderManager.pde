@@ -57,11 +57,12 @@ class RenderManager
       // Decode geometry
       PVector pos = s.transform.getWorldPosition();
       float ang = s.transform.getWorldRotation();
+      PVector scaleFactor = s.transform.getLocalScale();
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bDiffuse.tint(255, 255 * s.alphaDiff);
-      drawImage( bDiffuse, s.getDiffuse(), pos, ang, res, offset );
+      drawImage( bDiffuse, s.getDiffuse(), pos, ang, scaleFactor, res, offset );
     }
     bDiffuse.endDraw();
     
@@ -77,11 +78,12 @@ class RenderManager
       // Decode geometry
       PVector pos = s.transform.getWorldPosition();
       float ang = s.transform.getWorldRotation();
+      PVector scaleFactor = s.transform.getLocalScale();
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bSpecular.tint(255, 255 * s.alphaSpec);
-      drawImage( bSpecular, s.getSpecular(), pos, ang, res, offset );
+      drawImage( bSpecular, s.getSpecular(), pos, ang, scaleFactor, res, offset );
     }
     bSpecular.endDraw();
     
@@ -97,19 +99,18 @@ class RenderManager
       // Decode geometry
       PVector pos = s.transform.getWorldPosition();
       float ang = s.transform.getWorldRotation();
+      PVector scaleFactor = s.transform.getLocalScale();
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bEmissive.tint(255, 255 * s.alphaEmit);
-      drawImage( bEmissive, s.getEmissive(), pos, ang, res, offset );
+      drawImage( bEmissive, s.getEmissive(), pos, ang, scaleFactor, res, offset );
     }
     bEmissive.endDraw();
     
     
     // Normal pass
     bNormal.beginDraw();
-    // SET SHADER
-    bNormal.shader(shaderNorm);
     bNormal.clear();
     Iterator iN = sprites.iterator();
     while( iN.hasNext() )
@@ -119,12 +120,15 @@ class RenderManager
       // Decode geometry
       PVector pos = s.transform.getWorldPosition();
       float ang = s.transform.getWorldRotation();
+      PVector scaleFactor = s.transform.getLocalScale();
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      bNormal.tint(255, 255 * s.alphaNorm);
+      bNormal.tint(255,255,255, 255 * s.alphaNorm);
+      // SET SHADER
+      bNormal.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);
-      drawImage( bNormal, s.getNormal(), pos, ang, res, offset );
+      drawImage( bNormal, s.getNormal(), pos, ang, scaleFactor, res, offset );
     }
     bNormal.resetShader();
     bNormal.endDraw();
@@ -133,9 +137,11 @@ class RenderManager
     // Warp pass
     bWarp.beginDraw();
     // Set default state
-    bWarp.background(127, 127, 255);
-    // SET SHADER
+    //bWarp.background(127, 127, 255);
     bWarp.shader(shaderNorm);
+    shaderNorm.set("worldAngle", 0.0);
+    bWarp.image(tex_warpBackdrop, 0,0, bWarp.width, bWarp.height);
+    // Sprites
     Iterator iW = sprites.iterator();
     while( iW.hasNext() )
     {
@@ -144,12 +150,17 @@ class RenderManager
       // Decode geometry
       PVector pos = s.transform.getWorldPosition();
       float ang = s.transform.getWorldRotation();
+      PVector scaleFactor = s.transform.getLocalScale();
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
+      bWarp.pushStyle();
       bWarp.tint(255, 255 * s.alphaWarp);
+      // SET SHADER
+      bWarp.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);
-      drawImage( bWarp, s.getWarp(), pos, ang, res, offset );
+      drawImage( bWarp, s.getWarp(), pos, ang, scaleFactor, res, offset );
+      bWarp.popStyle();
     }
     bWarp.resetShader();
     bWarp.endDraw();
@@ -158,7 +169,6 @@ class RenderManager
     // Apply lights
     bLight.beginDraw();
     bLight.clear();
-    bLight.shader(shaderLight);
     // Set additive fragment blender
     PGL pgl = bLight.beginPGL();
     pgl.blendFunc(PGL.ONE, PGL.ONE);
@@ -193,7 +203,7 @@ class RenderManager
   // finaliseRender
   
   
-  public void drawImage(PGraphics canvas, PImage img, PVector pos, float ang, PVector res, PVector offset)
+  public void drawImage(PGraphics canvas, PImage img, PVector pos, float ang, PVector scaleFactor, PVector res, PVector offset)
   {
     // Coordinate conversion: from percentile to window size
     pos = new PVector( fromPercentX(pos.x), fromPercent(pos.y) );  // Note that this uses fromPercentX, as it's screen space
@@ -204,6 +214,7 @@ class RenderManager
     canvas.pushMatrix();
     canvas.translate(pos.x, pos.y);
     canvas.rotate(ang);
+    canvas.scale(scaleFactor.x, scaleFactor.y);
     canvas.translate(offset.x, offset.y);
     canvas.image(img, 0,0, res.x, res.y);
     canvas.popMatrix();
