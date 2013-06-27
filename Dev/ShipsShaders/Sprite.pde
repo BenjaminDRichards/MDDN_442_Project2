@@ -3,7 +3,8 @@ class Sprite
 {
   DAGTransform transform;
   PImage imgDiff, imgNorm, imgSpec, imgEmit, imgWarp;
-  float alphaDiff, alphaNorm, alphaSpec, alphaEmit, alphaWarp;
+  //float alphaDiff, alphaNorm, alphaSpec, alphaEmit, alphaWarp;
+  color tintDiff, tintNorm, tintSpec, tintEmit, tintWarp;
   float coverageX, coverageY, centerX, centerY;
   
   
@@ -16,11 +17,18 @@ class Sprite
     this.centerX = centerX;
     this.centerY = centerY;
     
+    /*
     alphaDiff = 1.0;
     alphaNorm = 1.0;
     alphaSpec = 1.0;
     alphaEmit = 1.0;
     alphaWarp = 0.0;
+    */
+    tintDiff = color(255,255);
+    tintNorm = color(255,255);
+    tintSpec = color(255,255);
+    tintEmit = color(255,255);
+    tintWarp = color(255,255);
   }
   
   

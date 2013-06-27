@@ -17,8 +17,10 @@ class Particle
   
   public static final int FADE_LINEAR = 1;
   public static final int FADE_SMOOTH = 2;
-  public static final int FADE_INOUT = 3;
-  public static final int FADE_INOUT_SMOOTH = 4;
+  public static final int FADE_SQUARE = 3;
+  public static final int FADE_CUBE = 4;
+  public static final int FADE_INOUT = 5;
+  public static final int FADE_INOUT_SMOOTH = 6;
   
   
   Particle(DAGTransform transform, Sprite sprite, PVector vel, float spin, float ageMax)
@@ -35,12 +37,13 @@ class Particle
     this.ageMax = ageMax;
     pleaseRemove = false;
     
+    
     // Set fade modes
-    fadeDiff = FADE_SMOOTH;
-    fadeNorm = FADE_SMOOTH;
-    fadeSpec = FADE_SMOOTH;
-    fadeEmit = FADE_SMOOTH;
-    fadeWarp = FADE_SMOOTH;
+    fadeDiff = FADE_LINEAR;
+    fadeNorm = FADE_LINEAR;
+    fadeSpec = FADE_LINEAR;
+    fadeEmit = FADE_LINEAR;
+    fadeWarp = FADE_LINEAR;
   }
   
   
@@ -68,12 +71,11 @@ class Particle
     }
     
     // Age fading
-    float ageAlpha = 1.0 - age / ageMax;
-    sprite.alphaDiff = ageAlpha;
-    sprite.alphaNorm = ageAlpha;
-    sprite.alphaSpec = ageAlpha;
-    sprite.alphaEmit = ageAlpha;
-    sprite.alphaWarp = ageAlpha;
+    sprite.tintDiff = color( sprite.tintDiff, 255 * getAlpha(fadeDiff) );
+    sprite.tintNorm = color( sprite.tintNorm, 255 * getAlpha(fadeNorm) );
+    sprite.tintSpec = color( sprite.tintSpec, 255 * getAlpha(fadeSpec) );
+    sprite.tintEmit = color( sprite.tintEmit, 255 * getAlpha(fadeEmit) );
+    sprite.tintWarp = color( sprite.tintWarp, 255 * getAlpha(fadeWarp) );
     
     // Age dispersion
     if(disperse)
@@ -100,7 +102,11 @@ class Particle
       case FADE_LINEAR:
         return( ageAlpha );
       case FADE_SMOOTH:
-        return( 3 * pow(ageAlpha, 2) - 2 * pow(ageAlpha, 3) );
+        return( 3.0 * pow(ageAlpha, 2.0) - 2.0 * pow(ageAlpha, 3.0) );
+      case FADE_SQUARE:
+        return( pow( ageAlpha, 2.0 ) );
+      case FADE_CUBE:
+        return( pow( ageAlpha, 3.0 ) );
       case FADE_INOUT:
         ageAlpha *= 2;
         if(1.0 < ageAlpha)  {  ageAlpha = 2 - ageAlpha;  }
@@ -108,7 +114,7 @@ class Particle
       case FADE_INOUT_SMOOTH:
         ageAlpha *= 2;
         if(1.0 < ageAlpha)  {  ageAlpha = 2 - ageAlpha;  }
-        return( 3 * pow(ageAlpha, 2) - 2 * pow(ageAlpha, 3) );
+        return( 3.0 * pow(ageAlpha, 2.0) - 2.0 * pow(ageAlpha, 3.0) );
       default:
         break;
     }

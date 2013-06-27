@@ -34,11 +34,14 @@ PImage fx_shockwave, fx_ray1, fx_ray2, fx_ray1pc, fx_ray2pc;
 PImage fx_puff1, fx_puff2, fx_puff3, fx_puff1pc, fx_puff2pc, fx_puff3pc;
 PImage fx_spatter, fx_spatterPc, fx_spatterBlack;
 PImage fx_streak, fx_streakPC;
+PImage fx_wrinkle8, fx_wrinkle64, fx_wrinkle256;
+
+PImage hud_reticule;
 
 
 void setup()
 {
-  size(1280, 720, P2D);
+  size(1920, 1080, P2D);
   
   
   // Load resources
@@ -48,7 +51,8 @@ void setup()
   tex_norm = loadImage("images/ships/ship2_series7/ship2_series7_norm_512.png");
   tex_cloakNorm = loadImage("images/ships/ship2_series7/ship2_series7_512_blurNormal.png");
   tex_backdrop = loadImage("images/starscape.png");
-  tex_warpBackdrop = loadImage("images/windowGlass.png");
+  tex_warpBackdrop = loadImage("images/windowGlass4.png");
+  
   fx_shockwave = loadImage("images/effects/shockwave2.png");
   fx_ray1 = loadImage("images/effects/ray1.png");
   fx_ray2 = loadImage("images/effects/ray2.png");
@@ -65,6 +69,11 @@ void setup()
   fx_spatterBlack = loadImage("images/effects/spatterBlack.png");
   fx_streak = loadImage("images/effects/streak.png");
   fx_streakPC = loadImage("images/effects/streakPC.png");
+  fx_wrinkle8 = loadImage("images/effects/wrinkle8.png");
+  fx_wrinkle64 = loadImage("images/effects/wrinkle64.png");
+  fx_wrinkle256 = loadImage("images/effects/wrinkle256.png");
+  
+  hud_reticule = loadImage("images/hud/HUDreticule.png");
   
   
   // Setup story
@@ -231,6 +240,7 @@ void draw()
   */
   //background(255);
   //image(renderManager.bNormal, 0,0, width, height);
+  //image(renderManager.bWarp, 0,0, width, height);
   
   if(frameCount % 60 == 0)
   {
@@ -380,6 +390,11 @@ void drawHUD()
   textAlign(RIGHT, TOP);
   String labelCloak = int(playerShip.cloakActivation * 100) + " %         STEALTH  CAPACITORS";
   text(labelCloak, width * -0.01, height * 0.01);
+  
+  /*
+  SET DRESSING
+  */
+  fill(GUI_COLOR, 64);
   
   // Draw targeting array down the left
   pushMatrix();

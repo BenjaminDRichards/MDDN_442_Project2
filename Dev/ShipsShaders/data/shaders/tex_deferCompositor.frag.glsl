@@ -38,16 +38,14 @@ const vec4 normalAdder = vec4(-1.0, -1.0, -1.0, 0.0);
 
 float hardLightChannel(float base, float light)
 {
-  float value = 0;
   if(light < 0.5)
   {
-    value = 2.0 * base * light;
+    return( 2.0 * base * light );
   }
   else
   {
-    value = 1.0 - 2.0 * (1.0 - light) * (1.0 - base);
+    return( 1.0 - 2.0 * (1.0 - light) * (1.0 - base) );
   }
-  return( value );
 }
 
 

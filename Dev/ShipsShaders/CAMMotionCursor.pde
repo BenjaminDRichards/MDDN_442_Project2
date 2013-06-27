@@ -125,15 +125,14 @@ class MotionCursor
     selTarget.resetShader();
     
     // Render cursor
+    float offset = selTarget.height * 64.0 / 720.0;
     selTarget.pushMatrix();
-    selTarget.translate(cPos.x * sx, cPos.y * sy);
-    selTarget.strokeWeight(selTarget.height / 720.0);
-    selTarget.stroke(GUI_COLOR, 127);
-    selTarget.ellipse(0,0, 96,96);
-    selTarget.stroke(GUI_COLOR, 64);
-    selTarget.ellipse(0,0, 128,128);
+    selTarget.translate(cPos.x * sx - offset, cPos.y * sy - offset);
+    selTarget.tint(GUI_COLOR, 127);
+    selTarget.image(hud_reticule, 0,0, offset * 2, offset * 2);
     
     // Label cursor
+    selTarget.translate(offset, offset);  // Go to the center of the reticule
     selTarget.scale(0.5);
     selTarget.fill(GUI_COLOR, 127);
     selTarget.textAlign(LEFT, TOP);

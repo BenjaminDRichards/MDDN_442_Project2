@@ -61,7 +61,7 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      bDiffuse.tint(255, 255 * s.alphaDiff);
+      bDiffuse.tint(s.tintDiff);
       drawImage( bDiffuse, s.getDiffuse(), pos, ang, scaleFactor, res, offset );
     }
     bDiffuse.endDraw();
@@ -82,7 +82,7 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      bSpecular.tint(255, 255 * s.alphaSpec);
+      bSpecular.tint(s.tintSpec);
       drawImage( bSpecular, s.getSpecular(), pos, ang, scaleFactor, res, offset );
     }
     bSpecular.endDraw();
@@ -103,7 +103,7 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      bEmissive.tint(255, 255 * s.alphaEmit);
+      bEmissive.tint(s.tintEmit);
       drawImage( bEmissive, s.getEmissive(), pos, ang, scaleFactor, res, offset );
     }
     bEmissive.endDraw();
@@ -124,7 +124,7 @@ class RenderManager
       PVector res = new PVector(s.coverageX, s.coverageY);
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
-      bNormal.tint(255,255,255, 255 * s.alphaNorm);
+      bNormal.tint(s.tintNorm);
       // SET SHADER
       bNormal.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);
@@ -137,10 +137,12 @@ class RenderManager
     // Warp pass
     bWarp.beginDraw();
     // Set default state
+    bWarp.pushStyle();
     //bWarp.background(127, 127, 255);
     bWarp.shader(shaderNorm);
     shaderNorm.set("worldAngle", 0.0);
     bWarp.image(tex_warpBackdrop, 0,0, bWarp.width, bWarp.height);
+    bWarp.popStyle();
     // Sprites
     Iterator iW = sprites.iterator();
     while( iW.hasNext() )
@@ -155,7 +157,8 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bWarp.pushStyle();
-      bWarp.tint(255, 255 * s.alphaWarp);
+      //bWarp.tint(s.tintWarp);
+      bWarp.tint(255, alpha(s.tintWarp) );
       // SET SHADER
       bWarp.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);

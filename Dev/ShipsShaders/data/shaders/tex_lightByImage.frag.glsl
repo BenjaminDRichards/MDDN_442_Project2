@@ -45,7 +45,7 @@ void main() {
 	// Remap from 0,1 to -1,1
 	vec4 surfaceVec = (texture2D(normalMap, mapCoord) * normalScalar) + normalAdder;
 	
-	if(0 < surfaceVec.a )
+	if(0.0 < surfaceVec.a )
 	{
 		// Derive specular data
 		float specularStrength = texture2D(lightSpecularMap, mapCoord).x;
@@ -63,10 +63,10 @@ void main() {
 		lightVec = vec4(x, y, lightVec.z, lightVec.a);
 		
 		// Derive diffuse lighting
-		float diffValue = max( dot( lightVec, surfaceVec.xyz ),  0.0 ) * lightIntensity;
+		float diffValue = max( dot( lightVec.xyz, surfaceVec.xyz ),  0.0 ) * lightIntensity;
 		
 		// Compute reflection vectors
-		vec3 reflectionVec = reflect(-lightVec, surfaceVec);
+		vec3 reflectionVec = reflect(-lightVec.xyz, surfaceVec.xyz);
 		float eyeDot = max( dot(reflectionVec, eyeVec),  0.0);	// Clamped to avoid negatives
 		
 		// Compute specular power

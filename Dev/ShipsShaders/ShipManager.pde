@@ -130,7 +130,7 @@ class ShipManager
     while( i.hasNext() )
     {
       Ship s = (Ship) i.next();
-      if(s.team != friendlyTeam  &&  !s.exploding)
+      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable)
       {
         float d = s.getRoot().getWorldPosition().dist(pos);
         if( (d < dCandidate)  ||  (sCandidate == null) )
@@ -152,7 +152,7 @@ class ShipManager
     while( i.hasNext() )
     {
       Ship s = (Ship) i.next();
-      if(s.team != friendlyTeam  &&  !s.exploding)
+      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable)
         enemies.add(s);
     }
     
