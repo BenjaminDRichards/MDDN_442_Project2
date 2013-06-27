@@ -124,7 +124,7 @@ void setup()
   stencil.endDraw();
   */
   
-  
+  /*
   // Shockwave 2
   stencil = createGraphics(width, height, JAVA2D);
   stencil.beginDraw();
@@ -155,6 +155,160 @@ void setup()
   
   stencil.save("shockwave2.png");
   stencil.endDraw();
+  */
+  
+  /*
+  // Screen edge warp 2
+  stencil = createGraphics(width, height, JAVA2D);
+  stencil.beginDraw();
+  stencil.clear();
+  PVector center = new PVector(stencil.width / 2, stencil.height / 2);
+  float radius = width / 2;
+  stencil.loadPixels();
+  for(int y = 0;  y < stencil.height;  y++)
+  for(int x = 0;  x < stencil.width;  x++)
+  {
+    PVector aim = new PVector(0,0,1);
+    PVector pos = new PVector(x,y);
+    PVector dir = PVector.sub(pos, center);
+    float bend = pow( dir.mag() / radius, 2.0 );
+    
+    dir.normalize();
+    PVector norm = vectorToTextureNormal( PVector.lerp(aim, dir, bend) );
+    norm = new PVector(255 - norm.x, norm.y, norm.z);
+    
+    stencil.pixels[x + y * stencil.width] = color(norm.x, norm.y, norm.z, 255);
+  }
+  stencil.updatePixels();
+  stencil.save("windowGlass2.png");
+  stencil.endDraw();
+  */
+  
+  
+  /*
+  // Screen edge warp 3
+  stencil = createGraphics(width, height, JAVA2D);
+  stencil.beginDraw();
+  stencil.clear();
+  PVector flat = new PVector(0.0, 0.0, 1.0);
+  PVector center = new PVector(stencil.width / 2, stencil.height / 2);
+  float radius = width / 2;
+  stencil.loadPixels();
+  for(int y = 0;  y < stencil.height;  y++)
+  for(int x = 0;  x < stencil.width;  x++)
+  {
+    PVector aim = new PVector(0,0,1);
+    PVector pos = new PVector(x,y);
+    PVector dir = PVector.sub(pos, center);
+    dir.set(-dir.x, dir.y);
+    
+    // Side curvature
+    float edgePower = 4.0;
+    //float edginess = center.dist(pos) / radius;
+    float edginess = 0.0;
+    // Left curve
+    float leftiness = 1.0 - pow( x / (float)width,  1.0/edgePower );
+    PVector curveLeft = new PVector(leftiness, 0,0);
+    aim.add(curveLeft);
+    edginess = max(0.0, leftiness);
+    // Right curve
+    float rightiness = 1.0 - pow( 1.0 - (x / (float)width),  1.0/edgePower );
+    PVector curveRight = new PVector(-rightiness, 0,0);
+    aim.add(curveRight);
+    edginess = max(0.0, rightiness);
+    // Upper curve
+    float uppiness = 1.0 - pow( y / (float)height,  1.0/edgePower );
+    PVector curveUp = new PVector(0, -uppiness, 0);
+    aim.add(curveUp);
+    edginess = max(0.0, uppiness);
+    // Bottom curve
+    float lowliness = 1.0 - pow( 1.0 - (y / (float)height),  1.0/edgePower );
+    PVector curveLow = new PVector(0, lowliness, 0);
+    aim.add(curveLow);
+    edginess = max(0.0, lowliness);
+    
+    aim.normalize();
+    
+    PVector aimDeviation = new PVector(aim.x, aim.y);
+    float adevlen = aimDeviation.mag();
+    PVector norm = PVector.lerp(flat, dir, adevlen);
+    
+    PVector distColVec = vectorToTextureNormal(norm);
+    color distCol = color(distColVec.x, distColVec.y, distColVec.z, 255);
+    
+    stencil.pixels[x + y * stencil.width] = distCol;
+  }
+  stencil.updatePixels();
+  stencil.save("windowGlass3.png");
+  stencil.endDraw();
+  // Screen edge warp 3
+  */
+  
+  
+  /*
+  // Raw central
+  stencil = createGraphics(width, height, JAVA2D);
+  stencil.beginDraw();
+  stencil.clear();
+  PVector flat = new PVector(0.0, 0.0, 1.0);
+  PVector center = new PVector(stencil.width / 2, stencil.height / 2);
+  float radius = width / 2;
+  stencil.loadPixels();
+  for(int y = 0;  y < stencil.height;  y++)
+  for(int x = 0;  x < stencil.width;  x++)
+  {
+    PVector aim = new PVector(0,0,1);
+    PVector pos = new PVector(x,y);
+    PVector dir = PVector.sub(pos, center);
+    dir.set(-dir.x, dir.y);
+    
+    
+    PVector colVec = vectorToTextureNormal(dir);
+    color distCol = color(colVec.x, colVec.y, colVec.z, 255);
+    
+    stencil.pixels[x + y * stencil.width] = distCol;
+  }
+  stencil.updatePixels();
+  stencil.save("rawCentral.png");
+  stencil.endDraw();
+  // Raw central
+  */
+  
+  
+  // Noisy normals
+  stencil = createGraphics(width, height, JAVA2D);
+  stencil.beginDraw();
+  stencil.clear();
+  PVector flat = new PVector(0.0, 0.0, 1.0);
+  PVector center = new PVector(stencil.width / 2, stencil.height / 2);
+  float radius = width / 2;
+  stencil.loadPixels();
+  for(int y = 0;  y < stencil.height;  y++)
+  for(int x = 0;  x < stencil.width;  x++)
+  {
+    PVector aim = new PVector(0,0,1);
+    PVector pos = new PVector(x,y);
+    PVector dir = PVector.sub(pos, center);
+    dir.set(-dir.x, dir.y);
+    
+    float nstep = 0.01;
+    float nx = noise(x * nstep, y * nstep, 0);
+    float ny = noise(0, x * nstep, y * nstep);
+    float nz = noise(y * nstep, 0, x * nstep);
+    PVector nVec = new PVector( noise(nx, ny, nz), noise(ny, nz, nx), noise(nz, nx, ny) );
+    nVec.sub( new PVector(0.5, 0.5, 0.5) );
+    nVec.mult(4);
+    nVec.add(flat);
+    
+    PVector colVec = vectorToTextureNormal(nVec);
+    color col = color(colVec.x, colVec.y, colVec.z, 255);
+    
+    stencil.pixels[x + y * stencil.width] = col;
+  }
+  stencil.updatePixels();
+  stencil.save("noisyNormals.png");
+  stencil.endDraw();
+  // Noise normals
   
   
   println("Done!");
