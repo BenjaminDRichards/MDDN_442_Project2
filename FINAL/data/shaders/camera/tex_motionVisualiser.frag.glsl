@@ -50,7 +50,7 @@ void main() {
 	if( probeCol.r != xCol.r )
 	{
 		// Difference
-		if( abs(intProbe.x - vertTexCoord.x) < 0.1 / resolution.y )
+		if( abs(intProbe.x - vertTexCoord.x) < 0.05 / resolution.y )
 		{
 			probeCol = vec4(1.0, 1.0, 1.0, 0.25);
 		}

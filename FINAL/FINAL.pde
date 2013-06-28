@@ -422,6 +422,7 @@ void drawHUD()
   pushStyle();
   noStroke();
   fill(GUI_COLOR, 127);
+  textSize(12 * height / 1080.0);
   translate(width * 0.5, height * 0.9);
   if(0 < playerShip.excitement)
   {
@@ -458,7 +459,7 @@ void drawHUD()
   // Draw targeting array down the left
   pushMatrix();
   translate(width * -0.41, height * -0.04);
-  scale(0.5);
+  //scale(0.5);
   textAlign(LEFT, BOTTOM);
   String targetingList = "";//"regional  space  survey \n    scan items";
   Iterator iShips = sceneShipManager.ships.iterator();
@@ -492,6 +493,8 @@ void drawHUD()
   // Measuring in femtoparsecs, the screen is ~ 3km tall
   textRight += (int)playerPos.x + "  fpc\n" + (int)playerPos.y + "  fpc\n";
   textRight += (int)degrees( playerShip.getRoot().getWorldRotation() ) + "\n";
+  // Draw artist name
+  textRight += "MANTLE.mddn442.benjamin.d.richards.20130628\n";
   
   text(textRight, 0,0);
   
