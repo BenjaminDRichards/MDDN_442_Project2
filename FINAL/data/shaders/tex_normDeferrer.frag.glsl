@@ -31,9 +31,11 @@ void main() {
   // Counter-rotate vector
   float x = normalMapValue.x;
   float y = normalMapValue.y;
-  float ang = -worldAngle;
-  x = x * ( cos(ang) - sin(ang) );
-  y = y * ( sin(ang) + cos(ang) );
+  float derivedAngle = atan(x, y) + worldAngle;
+  float d = length( vec2(x, y) );
+  x = cos(derivedAngle) * d;
+  y = sin(derivedAngle) * d;
+  
   normalMapValue = vec4(x, y, normalMapValue.z, normalMapValue.a);
   
   // Remap back into 0,1

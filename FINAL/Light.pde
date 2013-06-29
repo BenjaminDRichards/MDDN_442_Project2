@@ -152,7 +152,8 @@ class Light
   {
     dir = direction.get();
     dir.normalize();
-    color texDir = color(255 * (dir.x * 0.5 + 0.5), 255 * (dir.y * 0.5 + 0.5), 255 * (dir.z * 0.5 + 0.5), 255);
+    // Build colour - note that coords are rgb:yxz and scaled [1, -1, -1]
+    color texDir = color(255 * (dir.y * 0.5 + 0.5), 255 * (-dir.x * 0.5 + 0.5), 255 * (-dir.z * 0.5 + 0.5), 255);
     filler.beginDraw();
     filler.clear();
     filler.noStroke();

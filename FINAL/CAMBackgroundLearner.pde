@@ -50,8 +50,8 @@ class BackgroundLearner
     canvasBlur = 0.01;
     learnRate = 0.5;  // How fast does it learn?
     learnTimer = 0;   // Tracker
-    heatFade = 32.0;
-    heatIsoBlur = 0.003;
+    heatFade = 16.0;
+    heatIsoBlur = 0.02;
     
     // Set threshold
     bgThreshold = 0.25;  // This might be important for localisation

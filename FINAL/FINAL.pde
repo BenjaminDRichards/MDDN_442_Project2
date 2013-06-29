@@ -16,9 +16,12 @@ ShipManager sceneShipManager;
 Ship playerShip;
 int MIN_SHIP_COUNT = 8;
 
-RenderManager renderManager;
+PGraphics output;              // Used for accelerated draw on slower machines
+PVector bufferRes;
+RenderManager renderManager, renderManagerScreen;
 
 Capture cam;
+boolean camConnected;
 BackgroundLearner bgLearn;
 MotionCursor motionCursor;
 boolean diagnoseBuffers;
@@ -28,7 +31,7 @@ ArrayList sceneLights;
 
 PImage lightStencil;
 PGraphics testShipSprite;
-PImage tex_diff, tex_norm, tex_cloakNorm;
+PGraphics tex_flatWhite, tex_flatBlack, tex_flatNorm, tex_flatNull;
 PImage tex_backdrop, tex_warpBackdrop;
 
 PImage fx_shockwave, fx_ray1, fx_ray2, fx_ray1pc, fx_ray2pc;
@@ -68,20 +71,72 @@ PImage ship_preya_thrusterL_norm;
 PImage ship_preya_thrusterR_diff;
 PImage ship_preya_thrusterR_norm;
 
+PImage ship_preya_bridge_warp;
+PImage ship_preya_drive_warp;
+PImage ship_preya_inner_warp;
+PImage ship_preya_motor1L_warp;
+PImage ship_preya_motor1R_warp;
+PImage ship_preya_motor2L_warp;
+PImage ship_preya_motor2R_warp;
+PImage ship_preya_motor3L_warp;
+PImage ship_preya_motor3R_warp;
+PImage ship_preya_prow_warp;
+PImage ship_preya_thrusterArmL_warp;
+PImage ship_preya_thrusterArmR_warp;
+PImage ship_preya_thrusterL_warp;
+PImage ship_preya_thrusterR_warp;
+
 
 void setup()
 {
-  size(1920, 1080, P2D);
+  size(displayWidth, displayHeight, P2D);
+  //size(1280, 720, P2D);
+  
+  noCursor();
+  
+  
+  // Generate resources
+  tex_flatWhite = createGraphics(1,1,P2D);
+  tex_flatWhite.beginDraw();
+  tex_flatWhite.background(255);
+  tex_flatWhite.endDraw();
+  
+  tex_flatBlack = createGraphics(1,1,P2D);
+  tex_flatBlack.beginDraw();
+  tex_flatBlack.background(0);
+  tex_flatBlack.endDraw();
+  
+  tex_flatNorm = createGraphics(1,1,P2D);
+  tex_flatNorm.beginDraw();
+  tex_flatNorm.background(127,127,255);
+  tex_flatNorm.endDraw();
+  
+  tex_flatNull = createGraphics(1,1,P2D);
+  tex_flatNull.beginDraw();
+  tex_flatNull.clear();
+  tex_flatNull.endDraw();
+  
+  // Test ship sprite
+  testShipSprite = createGraphics(64,64,P2D);
+  testShipSprite.beginDraw();
+  testShipSprite.loadPixels();
+  for(int i = 0;  i < testShipSprite.pixels.length;  i++)
+  {
+    float x = i % testShipSprite.width;
+    float y = floor(i / testShipSprite.width);
+    x = x / (float) testShipSprite.width;
+    y = y / (float) testShipSprite.height;
+    testShipSprite.pixels[i] = color(255 * x, 255 * y, 0);
+  }
+  testShipSprite.updatePixels();
+  testShipSprite.endDraw();
   
   
   // Load resources
   lightStencil = loadImage("images/lightStencil16.png");
   
-  tex_diff = loadImage("images/ships/ship2_series7/ship2_series7_diff_512.png");
-  tex_norm = loadImage("images/ships/ship2_series7/ship2_series7_norm_512.png");
-  tex_cloakNorm = loadImage("images/ships/ship2_series7/ship2_series7_512_blurNormal.png");
-  tex_backdrop = loadImage("images/starscape2.png");
-  tex_warpBackdrop = loadImage("images/windowGlass4.png");
+  tex_backdrop = loadImage("images/starscape2-suns.png");
+  tex_warpBackdrop = loadImage("images/windowGlass5.png");
   
   fx_shockwave = loadImage("images/effects/shockwave2.png");
   fx_ray1 = loadImage("images/effects/ray1.png");
@@ -134,66 +189,81 @@ void setup()
   ship_preya_thrusterR_diff = loadImage("images/ships/PreyA/PreyA_thrusterR_diff.png");
   ship_preya_thrusterR_norm = loadImage("images/ships/PreyA/PreyA_thrusterR_norm.png");
   
+  // Load generated smooth warp fields
+  ship_preya_bridge_warp = loadImage("images/ships/PreyA/PreyA_bridge_warp.png");
+  ship_preya_drive_warp = loadImage("images/ships/PreyA/PreyA_drive_warp.png");
+  ship_preya_inner_warp = loadImage("images/ships/PreyA/PreyA_inner_warp.png");
+  ship_preya_motor1L_warp = loadImage("images/ships/PreyA/PreyA_motor1L_warp.png");
+  ship_preya_motor1R_warp = loadImage("images/ships/PreyA/PreyA_motor1R_warp.png");
+  ship_preya_motor2L_warp = loadImage("images/ships/PreyA/PreyA_motor2L_warp.png");
+  ship_preya_motor2R_warp = loadImage("images/ships/PreyA/PreyA_motor2R_warp.png");
+  ship_preya_motor3L_warp = loadImage("images/ships/PreyA/PreyA_motor3L_warp.png");
+  ship_preya_motor3R_warp = loadImage("images/ships/PreyA/PreyA_motor3R_warp.png");
+  ship_preya_prow_warp = loadImage("images/ships/PreyA/PreyA_prow_warp.png");
+  ship_preya_thrusterArmL_warp = loadImage("images/ships/PreyA/PreyA_thrusterArmL_warp.png");
+  ship_preya_thrusterArmR_warp = loadImage("images/ships/PreyA/PreyA_thrusterArmR_warp.png");
+  ship_preya_thrusterL_warp = loadImage("images/ships/PreyA/PreyA_thrusterL_warp.png");
+  ship_preya_thrusterR_warp = loadImage("images/ships/PreyA/PreyA_thrusterR_warp.png");
+  
   
   // Setup story
   story = new Story();
   
   
-  // Setup renderer
-  renderManager = new RenderManager(g);
-  
-  
-  // Setup camera
-  String[] cameras = Capture.list();
-  if (cameras.length == 0)
+  // Setup draw buffer
+  // Comply with screen aspect ratio
+  float outputResX = 1920;
+  float outputResY = 1080;
+  float expectedRatio = outputResX / outputResY;
+  float actualRatio = width / (float)height;
+  if(actualRatio < expectedRatio)    outputResX = outputResY * actualRatio;
+  else                               outputResY = outputResX / actualRatio;
+  if(width < outputResX)
   {
-    println("There are no cameras available for capture.");
-    exit();
+    // Downsize buffer
+    outputResX = width;
+    outputResY = height;
   }
-  // Initialise camera from list
-  // My list has a 640*480 30fps feed at position 1
-  //cam = new Capture(this, cameras[1]);
-  // But for generic lists I'll be more specific:
-  cam = new Capture(this, 320, 240, 30); 
-  cam.start();
-  // Make certain the camera has begun
-  // This is necessary for the BackgroundLearner to work
-  while( !cam.available() )
-  {
-    killTime(1.0);
-  }
+  bufferRes = new PVector(outputResX, outputResY);
+  output = createGraphics( int(bufferRes.x), int(bufferRes.y), P2D);
   
-  // Setup camera systems
-  bgLearn = new BackgroundLearner(cam);
-  motionCursor = new MotionCursor();
-  diagnoseBuffers = false;
+  
+  // Setup renderers
+  renderManager = new RenderManager(output);
+  renderManager.fullWarp = tex_flatNorm;
+  renderManager.doBloom = true;
+  
+  renderManagerScreen = new RenderManager(g);
+  renderManagerScreen.bBackground = output;
+  renderManagerScreen.fullWarp = tex_warpBackdrop;
+  
+  
   
   // Setup constant lights
   sceneLights = new ArrayList();
   // Directional lights
-  DAGTransform dirLightDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
-  Light ldir = new Light(dirLightDag, 0.6, color(192, 222, 255, 255));
-  ldir.makeDirectional( new PVector(-0.2, -1, -0.2) );
-  sceneLights.add(ldir);
+  DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
+  Light dirl = new Light(dirlDag, 0.2, color(192, 222, 255, 255));
+  dirl.makeDirectional( new PVector(0.2, -1, 0.2) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.2, color(255,247,255, 255));
+  dirl.makeDirectional( new PVector(-1, -1, 0.3) );
+  sceneLights.add(dirl);
+  /*
+  RGB test lights
+  dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
+  dirl = new Light(dirlDag, 0.6, color(255, 0, 0, 255));
+  dirl.makeDirectional( new PVector(-0.0, -1, -0.0) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.6, color(0, 255, 0, 255));
+  dirl.makeDirectional( new PVector(1, 0, -0.0) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.6, color(0, 0, 255, 255));
+  dirl.makeDirectional( new PVector(0, 0, 1.0) );
+  sceneLights.add(dirl);
+  */
   
   
-  
-  
-  
-  // Test ship sprite
-  testShipSprite = createGraphics(64,64,P2D);
-  testShipSprite.beginDraw();
-  testShipSprite.loadPixels();
-  for(int i = 0;  i < testShipSprite.pixels.length;  i++)
-  {
-    float x = i % testShipSprite.width;
-    float y = floor(i / testShipSprite.width);
-    x = x / (float) testShipSprite.width;
-    y = y / (float) testShipSprite.height;
-    testShipSprite.pixels[i] = color(255 * x, 255 * y, 0);
-  }
-  testShipSprite.updatePixels();
-  testShipSprite.endDraw();
   
   // Ship code
   sceneShipManager = new ShipManager();
@@ -211,6 +281,42 @@ void setup()
   {
     spawnShipPreyA();
   }
+  
+  
+  
+  // Setup camera
+  String[] cameras = Capture.list();
+  if (cameras.length == 0)
+  {
+    println("There are no cameras available for capture.");
+    //exit();
+    // Reconfigure for mouse input
+    //playerShip.navMode = Ship.NAV_MODE_MOUSE;
+    camConnected = false;
+  }
+  else
+  {
+    // Initialise camera from list
+    // My list has a 640*480 30fps feed at position 1
+    //cam = new Capture(this, cameras[1]);
+    // But for generic lists I'll be more specific:
+    cam = new Capture(this, 320, 240, 30); 
+    cam.start();
+    camConnected = true;
+    // Make certain the camera has begun
+    // This is necessary for the BackgroundLearner to work
+    while( !cam.available() )
+    {
+      killTime(1.0);
+    }
+    
+    // Setup camera systems
+    bgLearn = new BackgroundLearner(cam);
+  }
+  motionCursor = new MotionCursor();
+  motionCursor.setDrawTarget(output);
+  motionCursor.run(tex_flatWhite);      // Pretouch systems
+  diagnoseBuffers = false;
 }
 // setup
 
@@ -225,13 +331,22 @@ void draw()
   */
   
   // Handle camera input
-  cam.read();
-  bgLearn.run();
-  motionCursor.run( bgLearn.getHeatIso() );
-  motionCursor.pipHeight = bgLearn.pipHeight;
+  if(camConnected)
+  {
+    cam.read();
+    bgLearn.run();
+    motionCursor.run( bgLearn.getHeatIso() );
+    motionCursor.pipHeight = bgLearn.pipHeight;
+  }
+  else
+  {
+    motionCursor.setCursorNormalized(mouseX / (float)width, mouseY / (float)height);
+  }
   // Control player ship
   PVector playerTarget = motionCursor.getCursorNormalized();
-  playerShip.setExternalVector( new PVector(toPercentX(playerTarget.x * width), toPercentY(playerTarget.y * height), 0.0) );
+  playerShip.setExternalVector( new PVector(toPercent( (playerTarget.x - 0.5) * output.width ),
+                                            toPercent(playerTarget.y * output.height),
+                                            0.0) );
   
   
   /*
@@ -257,21 +372,6 @@ void draw()
     spawnShipPreyA();
   }
   
-  /*
-  // Temporary warp test
-  DAGTransform warpDag = new DAGTransform(25, 50, 0,  story.tickTotal * 0.01,  1,1,1);
-  Sprite warpSprite = new Sprite(warpDag, null, 50, 50, -0.5, -0.5);
-  warpSprite.setWarp(tex_cloakNorm);
-  warpSprite.alphaWarp = 0.5 + 0.5 * sin(story.tickTotal * 0.05);
-  renderManager.addSprite(warpSprite);
-  // Second overlapping sprite
-  warpDag = new DAGTransform(15, 50, 0,  story.tickTotal * -0.01,  1,1,1);
-  warpSprite = new Sprite(warpDag, null, 50, 50, -0.5, -0.5);
-  warpSprite.setWarp(tex_cloakNorm);
-  warpSprite.alphaWarp = 1.0;
-  renderManager.addSprite(warpSprite);
-  */
-  
   // Perform final render
   renderManager.render();
   
@@ -281,6 +381,28 @@ void draw()
   UI DRAW
   */
   
+  // Draw excitement meters and HUD
+  output.beginDraw();
+  drawHUD(output);
+  output.endDraw();
+  
+  
+  /*
+  FINAL VISUAL COMPOSIT
+  */
+  /*
+  // Unfiltered output
+  image(output, 0,0, width, height);
+  */
+  // Post-processed output
+  renderManagerScreen.render();
+  
+  
+  
+  /*
+  Diagnostics
+  */
+  
   // Visualise camera systems
   if(diagnoseBuffers)
   {
@@ -288,15 +410,8 @@ void draw()
     motionCursor.diagnose();
   }
   
+  //image(ship_preya_bridge_warp, 0,0);
   
-  // Draw excitement meters and HUD
-  drawHUD();
-  
-  
-  
-  /*
-  Diagnostics
-  */
   //background(255);
   //image(renderManager.bNormal, 0,0, width, height);
   //image(renderManager.bWarp, 0,0, width, height);
@@ -312,40 +427,11 @@ void draw()
 // draw
 
 
-void mouseReleased()
-{
-  /*
-  // Convert mouse coordinates to screen space
-  float mx = screenMouseX();
-  float my = screenMouseY();
-  
-  if(mouseButton == LEFT)
-  {
-    PVector pos = new PVector(mx, my, 0);
-    PVector targetPos = pos.get();
-    targetPos.add( PVector.random3D() );
-    Ship s = sceneShipManager.makeShip( pos, targetPos, ShipManager.MODEL_MISSILE_A, 1);
-    s.team = 1;
-  }
-  
-  if(mouseButton == RIGHT)
-  {
-    PVector pos = new PVector(mx, my, 0);
-    PVector targetPos = pos.get();
-    targetPos.add( PVector.random3D() );
-    Ship s = sceneShipManager.makeShip( pos, targetPos, ShipManager.MODEL_BULLET_A, 1);
-    s.team = 1;
-  }
-  */
-}
-// mouseReleased
-
-
 void keyPressed()
 {
   if( key == 'S'  ||  key == 's' )  {  spawnShipPreyA();  }
   
-  if( key == '~'  ||  key == '`' )  {  diagnoseBuffers = !diagnoseBuffers;  }
+  if( (key == '~'  ||  key == '`')  &&  camConnected )  {  diagnoseBuffers = !diagnoseBuffers;  }
   
   if( key == 'L'  ||  key == 'l' )  {  bgLearn.learnInstant();  }
   
@@ -391,16 +477,18 @@ float screenMouseY()
 // screenMouseX
 
 float toPercentX(float x)
-{  return( (x - width * 0.5) * 100.0 / (float)height );  }
+{  return( toPercent(x - width * 0.5) );  }
 float toPercentY(float y)
-{  return( y * 100.0 / (float) height);  }
+{  return( toPercent(y) );  }
+float toPercent(float n)
+{  return( n * 100.0 / height );  }
 
 float fromPercentX(float x)
-{  return( height * x * 0.01 + width * 0.5 );  }
+{  return( fromPercent(x) + bufferRes.x * 0.5 );  }
 float fromPercentY(float y)
 {  return( fromPercent(y) );  }
 float fromPercent(float n)
-{  return( n * height * 0.01 );  }
+{  return( n * bufferRes.y * 0.01 );  }
 
 
 void spawnShipPreyA()
@@ -412,55 +500,58 @@ void spawnShipPreyA()
 }
 
 
-void drawHUD()
+void drawHUD(PGraphics pg)
 {
   // Draw motion cursor tracking data
   motionCursor.renderMoVis();
   
+  float cloakDim = 1.0 - 0.5 * playerShip.cloakActivation;
+  
   // Draw activity meters
-  pushMatrix();
-  pushStyle();
-  noStroke();
-  fill(GUI_COLOR, 127);
-  textSize(12 * height / 1080.0);
-  translate(width * 0.5, height * 0.9);
+  pg.pushMatrix();
+  pg.pushStyle();
+  
+  pg.noStroke();
+  pg.fill(GUI_COLOR, 127 * cloakDim);
+  pg.textSize(18 * pg.height / 1080.0);
+  pg.translate(pg.width * 0.5, pg.height * 0.9);
   if(0 < playerShip.excitement)
   {
-    rect(width * 0.01, 0,  width * 0.4 * playerShip.excitement, height * 0.001);
-    textAlign(RIGHT, BOTTOM);
+    pg.rect(pg.width * 0.01, 0,  pg.width * 0.4 * playerShip.excitement, pg.height * 0.001);
+    pg.textAlign(RIGHT, BOTTOM);
     if(playerShip.cloakActivation == 0)
     {
       String labelWeapons = "regional  supremacy  assertion  ONLINE";
-      text(labelWeapons, width * 0.41, height * -0.01);
+      pg.text(labelWeapons, pg.width * 0.41, pg.height * -0.01);
     }
   }
-  textAlign(LEFT, TOP);
+  pg.textAlign(LEFT, TOP);
   String labelExcite = "HELM  GUIDANCE        " + int(playerShip.excitement * 100) + " %";
-  text(labelExcite, width * 0.01, height * 0.01);
+  pg.text(labelExcite, pg.width * 0.01, pg.height * 0.01);
   if(0 < playerShip.cloakActivation)
   {
-    rect(width * -0.01, 0,  -width * 0.4 * playerShip.cloakActivation, height * 0.001);
+    pg.rect(pg.width * -0.01, 0,  -pg.width * 0.4 * playerShip.cloakActivation, pg.height * 0.001);
     if(playerShip.cloaked)
     {
-      textAlign(LEFT, BOTTOM);
+      pg.textAlign(LEFT, BOTTOM);
       String labelDeactive = "power  conservation  mode  ACTIVE";
-      text(labelDeactive, width * -0.41, height * -0.01);
+      pg.text(labelDeactive, pg.width * -0.41, pg.height * -0.01);
     }
   }
-  textAlign(RIGHT, TOP);
+  pg.textAlign(RIGHT, TOP);
   String labelCloak = int(playerShip.cloakActivation * 100) + " %         STEALTH  CAPACITORS";
-  text(labelCloak, width * -0.01, height * 0.01);
+  pg.text(labelCloak, pg.width * -0.01, pg.height * 0.01);
   
   /*
   SET DRESSING
   */
-  fill(GUI_COLOR, 64);
+  pg.fill(GUI_COLOR, 64 * cloakDim);
   
   // Draw targeting array down the left
-  pushMatrix();
-  translate(width * -0.41, height * -0.04);
-  //scale(0.5);
-  textAlign(LEFT, BOTTOM);
+  pg.pushMatrix();
+  pg.translate(pg.width * -0.41, pg.height * -0.04);
+  pg.scale(0.5);
+  pg.textAlign(LEFT, BOTTOM);
   String targetingList = "";//"regional  space  survey \n    scan items";
   Iterator iShips = sceneShipManager.ships.iterator();
   iShips.next();
@@ -474,14 +565,14 @@ void drawHUD()
     targetingList += label;
   }
   targetingList += "\n\nPRAScan\nregional  space  survey \n    scan items";
-  text(targetingList, 0,0);
-  popMatrix();
+  pg.text(targetingList, 0,0);
+  pg.popMatrix();
   
   
   // Draw movement block at right
-  pushMatrix();
-  translate(width * 0.41, height * -0.04);
-  textAlign(RIGHT, BOTTOM);
+  pg.pushMatrix();
+  pg.translate(pg.width * 0.41, pg.height * -0.04);
+  pg.textAlign(RIGHT, BOTTOM);
   String textRight = "";
   // Draw fps
   textRight += int(frameRate) + "  fps\n";
@@ -496,15 +587,79 @@ void drawHUD()
   // Draw artist name
   textRight += "MANTLE.mddn442.benjamin.d.richards.20130628\n";
   
-  text(textRight, 0,0);
+  pg.text(textRight, 0,0);
   
-  popMatrix();
+  pg.popMatrix();
   
   
-  popStyle();
-  popMatrix();
+  pg.popStyle();
+  pg.popMatrix();
 }
 // drawHUD
+
+
+
+PGraphics normalToWarp(PImage normalSource, String name)
+// Fuzz out the edges of a normal map to create nice warp falloff
+// This was used to generate all the warp textures
+{
+  PGraphics warpBlur = createGraphics(normalSource.width, normalSource.height, P2D);
+  warpBlur.beginDraw();
+  warpBlur.clear();
+  // Fill with invisible flat-normals
+  warpBlur.loadPixels();
+  for(int i = 0;  i < warpBlur.pixels.length;  i++)
+  {
+    warpBlur.pixels[i] = color(127,127,255,0);
+  }
+  warpBlur.updatePixels();
+  warpBlur.image(normalSource,  0, 0,  warpBlur.width, warpBlur.height);
+  warpBlur.filter(BLUR, normalSource.width / 32.0);
+  warpBlur.endDraw();
+  
+  PGraphics warpBlurBig = createGraphics(normalSource.width, normalSource.height, P2D);
+  warpBlurBig.beginDraw();
+  warpBlurBig.clear();
+  // Fill with invisible flat-normals
+  warpBlurBig.loadPixels();
+  for(int i = 0;  i < warpBlurBig.pixels.length;  i++)
+  {
+    warpBlurBig.pixels[i] = color(127,127,255,0);
+  }
+  warpBlurBig.updatePixels();
+  warpBlurBig.image(normalSource,  0, 0,  warpBlurBig.width, warpBlurBig.height);
+  warpBlurBig.filter(BLUR, normalSource.width / 16.0);
+  warpBlurBig.endDraw();
+  
+  PGraphics warp = createGraphics(normalSource.width, normalSource.height, P2D);
+  warp.beginDraw();
+  warp.clear();
+  warp.image(normalSource,  0, 0,  warp.width, warp.height);
+  warp.loadPixels();
+  warpBlur.loadPixels();
+  for(int i = 0;  i < warp.pixels.length;  i++)
+  {
+    color wCol = warp.pixels[i];
+    color waCol = warpBlur.pixels[i];
+    wCol = lerpColor(wCol, waCol, 1.0 - alpha(waCol) / 255.0);
+    wCol = color( red(wCol), green(wCol), blue(wCol), 2.0 * alpha(wCol) - 255 );
+    warp.pixels[i] = wCol;
+  }
+  warp.updatePixels();
+  warp.endDraw();
+  
+  // Final composite
+  warpBlurBig.beginDraw();
+  warpBlurBig.image(warpBlur,  0, 0,  warpBlurBig.width, warpBlurBig.height);
+  warpBlurBig.image(warp,  0, 0,  warpBlurBig.width, warpBlurBig.height);
+  warpBlurBig.endDraw();
+  
+  println("Warped " + name);
+  warpBlurBig.save("data/images/ships/PreyA/" + name + ".png");
+  
+  return( warpBlurBig );
+}
+// normalToWarp
 
 
 

@@ -128,7 +128,7 @@ class Ship
     targetable = true;
     this.team = team;
     age = 0;
-    ageMax = 180;  // This is only used for missiles
+    ageMax = 240;  // This is only used for missiles
     turretRange = new PVector(-HALF_PI, HALF_PI, 30);
     turretAcquisitionArc = 0.2;
     reload = 0;
@@ -313,20 +313,26 @@ class Ship
       // Bring to the same side as the heading, to avoid turning the wrong way
       if(PI < sepAngle - rr)  sepAngle -= TWO_PI;
       if(PI < rr - sepAngle)  sepAngle += TWO_PI;
+      
+      // Compute steering power
+      float steerPower = constrain( abs(sepAngle - rr) / HALF_PI,  0,1);
+      float steerPowerTurn = pow(steerPower, 0.5);
+      float steerPowerThrust = 1 - 0.7 * pow(steerPower, 2);
+      
       // Turn towards the heading
       if(rr < sepAngle)
       {
         // Turn left
-        rateTurn += turnThrust * tick;
+        rateTurn += turnThrust * tick * steerPowerTurn;
       }
       if(sepAngle < rr)
       {
         // Turn right
-        rateTurn -= turnThrust * tick;
+        rateTurn -= turnThrust * tick * steerPowerTurn;
       }
       
       // Accelerate towards target
-      rateVel += thrust * tick;
+      rateVel += thrust * tick * steerPowerThrust;
     }
     
     // When inside region, slow down and match heading
@@ -395,10 +401,6 @@ class Ship
     target.moveLocal(radius * 4.0, 0, 0);
     target.setParentToWorld();
     // Introduce some wiggle
-    /*
-    float r = 1.0;
-    target.moveLocal( random(-r,r), random(-r,r), random(-r,r) );
-    */
     PVector r = PVector.random2D();
     r.mult(1.0);
     target.moveLocal(r.x, r.y, 0.0);
@@ -412,7 +414,7 @@ class Ship
       float otherDetectRadius = ship.radius * radiusMult;
       if( vecBetween.mag() < detectRadius + otherDetectRadius)
       {
-        target.moveWorld(vecBetween.x, vecBetween.y, vecBetween.z);
+        target.moveWorld(vecBetween.x * 2.0, vecBetween.y * 2.0, vecBetween.z * 2.0);
       }
     }
   }
@@ -477,24 +479,27 @@ class Ship
   private void doNavTargetingHoming()
   // Home in on the nearest enemy and explode
   {
-    // Find nearest enemy
-    Ship enemy = shipManager.getNearestEnemyTo( root.getWorldPosition(),  team );
-    if(enemy != null)
+    if(!exploding)
     {
-      target.snapTo( enemy.getRoot() );
-      // Check for proximity
-      if( enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < radius )
+      // Find nearest enemy
+      Ship enemy = shipManager.getNearestEnemyTo( root.getWorldPosition(),  team );
+      if(enemy != null)
       {
-        // Kill yourself
-        startExploding();
-        // Kill the enemy too
-        enemy.takeHit();
+        target.snapTo( enemy.getRoot() );
+        // Check for proximity
+        if( enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < radius )
+        {
+          // Kill yourself
+          startExploding();
+          // Kill the enemy too
+          enemy.takeHit();
+        }
       }
-    }
-    // Time out
-    if(ageMax < age)
-    {
-     startExploding();
+      // Time out
+      if(ageMax < age)
+      {
+       startExploding();
+      }
     }
   }
   // doNavTargetingHoming
@@ -503,28 +508,31 @@ class Ship
   private void doNavTargetingBullet()
   // Fly unaltered until you hit an enemy
   {
-    Iterator i = shipManager.ships.iterator();
-    while( i.hasNext() )
+    if(!exploding)
     {
-      Ship enemy = (Ship) i.next();
-      if(enemy.team == team)  continue;  // Don't hit friendlies
-      if(enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < enemy.radius + radius)
+      Iterator i = shipManager.ships.iterator();
+      while( i.hasNext() )
       {
-        // That is, the two are close enough to collide
-        // Kill yourself
-        startExploding();
-        // Kill the enemy too
-        enemy.takeHit();
-        // Slow down, you might hit something else
-        rateVel = 0;
-        break;
+        Ship enemy = (Ship) i.next();
+        if(enemy.team == team)  continue;  // Don't hit friendlies
+        if(enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < enemy.radius + radius)
+        {
+          // That is, the two are close enough to collide
+          // Kill yourself
+          startExploding();
+          // Kill the enemy too
+          enemy.takeHit();
+          // Slow down, you might hit something else
+          rateVel = 0;
+          break;
+        }
       }
-    }
-    
-    // Time out
-    if(ageMax < age)
-    {
-     startExploding();
+      
+      // Time out
+      if(ageMax < age)
+      {
+       startExploding();
+      }
     }
   }
   // doNavTargetingBullet
@@ -952,6 +960,19 @@ class Ship
     DAGTransform driveLightDag_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
     Animator driveLightDag_anim = driveLightDag.makeSlider(driveLightDag_key1, driveLightDag_key2);
     animThrust.add(driveLightDag_anim);
+    // Create exhaust emitters
+    // Style exhaust shimmer particle
+    DAGTransform exhaustPDag = new DAGTransform(0,0,0, 0, 1,1,1);
+    Sprite exhaustS = new Sprite(exhaustPDag, null, 2, 2, -0.5, -0.5);
+    exhaustS.setWarp(fx_wrinkle64);
+    PVector exhaustVel = new PVector(0.05, 0, 0);
+    float exhaustSpin = 0.02;
+    float exhaustAgeMax = 180;
+    Particle exhaustP = new Particle(exhaustPDag, exhaustS, exhaustVel, exhaustSpin, exhaustAgeMax);
+    exhaustP.fadeWarp = Particle.FADE_INOUT_SMOOTH;
+    // Emitter 1
+    ParticleEmitter em1 = new ParticleEmitter(driveLightDag, exhaustP, 0.1);
+    emitters.add(em1);
     
     
     // THRUSTERS
@@ -1194,7 +1215,9 @@ class Ship
     // Change behaviour
     navMode = NAV_MODE_EXTERNAL;
     destinationRadius = 15.0;
-    turnThrust = 0.0001;
+    thrust = 0.0015;
+    turnThrust = 0.0002;
+    wrap = false;
     cloakOnInactive = true;
     colExplosion = color(255,222,192,255);
     
@@ -1206,6 +1229,7 @@ class Ship
     /* Setup some graphics */
     Sprite spriteHull = new Sprite(hull, ship_preya_inner_diff, 24,24, -0.5,-0.5);
     spriteHull.setNormal(ship_preya_inner_norm);
+    spriteHull.setWarp(ship_preya_inner_warp);
     
     color colDrive = color(255,222,192, 255);
     
@@ -1220,7 +1244,7 @@ class Ship
     Sprite prowS = new Sprite(prowDag, ship_preya_prow_diff, 8,8, -0.5,-0.5);
     prowS.setSpecular(ship_preya_prow_diff);
     prowS.setNormal(ship_preya_prow_norm);
-    prowS.setWarp(ship_preya_prow_norm);
+    prowS.setWarp(ship_preya_prow_warp);
     
     // Create bridge
     DAGTransform bridgeDag = new DAGTransform(0, 1.4 ,0, 0, 1,1,1);
@@ -1230,7 +1254,7 @@ class Ship
     Sprite bridgeS = new Sprite(bridgeDag, ship_preya_bridge_diff, 12,12, -0.5,-0.5);
     bridgeS.setSpecular(ship_preya_bridge_diff);
     bridgeS.setNormal(ship_preya_bridge_norm);
-    bridgeS.setWarp(ship_preya_bridge_norm);
+    bridgeS.setWarp(ship_preya_bridge_warp);
     
     // Create drive
     DAGTransform driveDag = new DAGTransform(0, 4 ,0, 0, 1,1,1);
@@ -1240,12 +1264,12 @@ class Ship
     Sprite driveS = new Sprite(driveDag, ship_preya_drive_diff, 12,12, -0.5,-0.5);
     driveS.setSpecular(ship_preya_drive_diff);
     driveS.setNormal(ship_preya_drive_norm);
-    driveS.setWarp(ship_preya_drive_norm);
+    driveS.setWarp(ship_preya_drive_warp);
     // Register drive thrust light
     DAGTransform driveLightDag = new DAGTransform(0,0,0, 0, 1,1,1);
     driveLightDag.snapTo(driveDag);
     driveLightDag.setParent(driveDag);
-    driveLightDag.moveWorld(0, 6, 0);
+    driveLightDag.moveWorld(0, 6.0, 0);
     driveLightDag.useSX = true;
     Light driveLight = new Light( driveLightDag, 1.0, colDrive );
     lights.add(driveLight);
@@ -1258,14 +1282,14 @@ class Ship
     // Style exhaust shimmer particle
     DAGTransform exhaustPDag = new DAGTransform(0,0,0, 0, 1,1,1);
     Sprite exhaustS = new Sprite(exhaustPDag, null, 2, 2, -0.5, -0.5);
-    exhaustS.setWarp(fx_wrinkle8);
+    exhaustS.setWarp(fx_wrinkle64);
     PVector exhaustVel = new PVector(0.05, 0, 0);
     float exhaustSpin = 0.02;
     float exhaustAgeMax = 180;
     Particle exhaustP = new Particle(exhaustPDag, exhaustS, exhaustVel, exhaustSpin, exhaustAgeMax);
     exhaustP.fadeWarp = Particle.FADE_INOUT_SMOOTH;
     // Emitter 1
-    ParticleEmitter em1 = new ParticleEmitter(driveLightDag, exhaustP, 0.5);
+    ParticleEmitter em1 = new ParticleEmitter(driveLightDag, exhaustP, 0.1);
     emitters.add(em1);
     
     
@@ -1278,7 +1302,7 @@ class Ship
     Sprite wingLS = new Sprite(wingLdag, ship_preya_thrusterArmL_diff, 16,16, -0.5,-0.5);
     wingLS.setSpecular(ship_preya_thrusterArmL_diff);
     wingLS.setNormal(ship_preya_thrusterArmL_norm);
-    wingLS.setWarp(ship_preya_thrusterArmL_norm);
+    wingLS.setWarp(ship_preya_thrusterArmL_warp);
     
     // Create right wing
     DAGTransform wingRdag = new DAGTransform(4, 2, 0, 0, 1,1,1);
@@ -1287,7 +1311,7 @@ class Ship
     Sprite wingRS = new Sprite(wingRdag, ship_preya_thrusterArmR_diff, 16,16, -0.5,-0.5);
     wingRS.setSpecular(ship_preya_thrusterArmR_diff);
     wingRS.setNormal(ship_preya_thrusterArmR_norm);
-    wingRS.setWarp(ship_preya_thrusterArmR_norm);
+    wingRS.setWarp(ship_preya_thrusterArmR_warp);
     
     
     // THRUSTERS
@@ -1299,7 +1323,7 @@ class Ship
     Sprite thrusterArmL = new Sprite(thrusterArmLdag, ship_preya_thrusterArmL_diff, 8,8, -0.75,-0.25);
     thrusterArmL.setSpecular(ship_preya_thrusterArmL_diff);
     thrusterArmL.setNormal(ship_preya_thrusterArmL_norm);
-    thrusterArmL.setWarp(ship_preya_thrusterArmL_norm);
+    thrusterArmL.setWarp(ship_preya_thrusterArmL_warp);
     // Set sliders for left turn panel
     thrusterArmLdag.useR = true;
     DAGTransform leftThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1316,7 +1340,7 @@ class Ship
     Sprite thrusterArmR = new Sprite(thrusterArmRdag, ship_preya_thrusterArmR_diff, 8,8, -0.25,-0.25);
     thrusterArmR.setSpecular(ship_preya_thrusterArmR_diff);
     thrusterArmR.setNormal(ship_preya_thrusterArmR_norm);
-    thrusterArmR.setWarp(ship_preya_thrusterArmR_norm);
+    thrusterArmR.setWarp(ship_preya_thrusterArmR_warp);
     // Set sliders for right turn panel
     thrusterArmRdag.useR = true;
     DAGTransform rightThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1333,7 +1357,7 @@ class Ship
     Sprite thrusterL = new Sprite(thrusterLdag, ship_preya_thrusterL_diff, 2,2, -0.5,-0.5);
     thrusterL.setSpecular(ship_preya_thrusterL_diff);
     thrusterL.setNormal(ship_preya_thrusterL_norm);
-    thrusterL.setWarp(ship_preya_thrusterL_norm);
+    thrusterL.setWarp(ship_preya_thrusterL_warp);
     // Set sliders for left turn panel
     thrusterLdag.useR = true;
     DAGTransform thrusterLdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1362,7 +1386,7 @@ class Ship
     Sprite thrusterR = new Sprite(thrusterRdag, ship_preya_thrusterR_diff, 2,2, -0.5,-0.5);
     thrusterR.setSpecular(ship_preya_thrusterR_diff);
     thrusterR.setNormal(ship_preya_thrusterR_norm);
-    thrusterR.setWarp(ship_preya_thrusterR_norm);
+    thrusterR.setWarp(ship_preya_thrusterR_warp);
     // Set sliders for left turn panel
     thrusterRdag.useR = true;
     DAGTransform thrusterRdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1435,10 +1459,11 @@ class Ship
     navMode = NAV_MODE_TURRET;
     thrust = 0.0;
     drag = 0.0;
-    turnThrust = 0.0003;
+    turnThrust = 0.04;
+    turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
     turretRange.set(turretRange.x, turretRange.y, 40);
-    turretAcquisitionArc = turretRange.y - turretRange.x;
+    turretAcquisitionArc = 0.2;
     munitionType = MUNITION_MISSILE_A;
     
     // Create geometry
@@ -1447,7 +1472,7 @@ class Ship
     Sprite hullS = new Sprite(hull, ship_preya_prow_diff, 6,6, -0.5,-0.5);
     hullS.setSpecular(ship_preya_prow_diff);
     hullS.setNormal(ship_preya_prow_norm);
-    hullS.setWarp(ship_preya_prow_norm);
+    hullS.setWarp(ship_preya_prow_warp);
     sprites.add(hullS);
     
     // Finalise
@@ -1463,13 +1488,13 @@ class Ship
     navMode = NAV_MODE_TURRET;
     thrust = 0.0;
     drag = 0.0;
-    turnThrust = 0.02;
-    turnDrag = 0.9;
+    turnThrust = 0.04;
+    turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
     munitionType = MUNITION_BULLET_A;
     firingTimeMax = 10;
     turretRange.set(turretRange.x, turretRange.y, 40);
-    turretAcquisitionArc = 0.5;
+    turretAcquisitionArc = 0.2;
     reloadTime = 10.0;
     
     // Create geometry
@@ -1478,7 +1503,7 @@ class Ship
     Sprite hullS = new Sprite(hull, ship_preya_prow_diff, 6,6, -0.5,-0.5);
     hullS.setSpecular(ship_preya_prow_diff);
     hullS.setNormal(ship_preya_prow_norm);
-    hullS.setWarp(ship_preya_prow_norm);
+    hullS.setWarp(ship_preya_prow_warp);
     sprites.add(hullS);
     
     // Finalise
@@ -1515,7 +1540,7 @@ class Ship
     
     // Exhaust emitter
     {
-      DAGTransform em1Host = new DAGTransform(0, 1.5, 0,  0,  1,1,1);
+      DAGTransform em1Host = new DAGTransform(0, 0.8, 0,  0,  1,1,1);
       em1Host.setParent(hull);
       ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 2.0);
       emitters.add(em1);
@@ -1728,7 +1753,7 @@ class Ship
     // Spatters
     PVector spatVel = new PVector(0.2, 0, 0);
     float spatSpin = 0.01;
-    float spatAgeMax = 60;
+    float spatAgeMax = 45;
     
     // Spatter
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1819,7 +1844,7 @@ class Ship
     // Spatters
     PVector spatVel = new PVector(0.2, 0, 0);
     float spatSpin = 0.01;
-    float spatAgeMax = 60;
+    float spatAgeMax = 45;
     
     // Spatter
     dag = new DAGTransform(0,0,0, 0, 1,1,1);

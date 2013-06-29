@@ -68,9 +68,16 @@ class MotionCursor
   // Returns a vector in range 0-1 in both dimensions
   // Good for resolution-agnostic results
   {
-    return( new PVector(cPos.x / (float) src.width,  cPos.y / (float) src.height, 0) );
+    return( new PVector(cPos.x / (float) src.width,  cPos.y / (float) src.height,  0) );
   }
   // getCursorNormalized
+  
+  
+  public void setCursorNormalized(float x, float y)
+  {
+    cPos.set(x * selBuffer.width,  y * selBuffer.height,  0);
+  }
+  // setCursorNormalized
   
   
   public PVector getJCursor()
@@ -111,15 +118,21 @@ class MotionCursor
   {
     // Style MoVis
     selTarget.pushStyle();
-    selTarget.noFill();
     
     // Determine scale factor
     float sx = selTarget.width / (float) selBuffer.width;
     float sy = selTarget.height / (float) selBuffer.height;
     
+    // Opacity dim for power saving
+    float guiOpacity = 1.0;
+    if(playerShip != null)
+    {
+      guiOpacity = 1.0 - 0.75 * playerShip.cloakActivation;
+    }
+    
     // Shader border detection
     selTarget.shader(shaderMoVis);
-    selTarget.tint(GUI_COLOR);
+    selTarget.tint(GUI_COLOR, 255 * guiOpacity);
     shaderMoVis.set("resolution", (float)selBuffer.width, (float)selBuffer.height);
     selTarget.image(selBuffer, 0,0, selTarget.width, selTarget.height);
     selTarget.resetShader();
@@ -128,18 +141,43 @@ class MotionCursor
     float offset = selTarget.height * 64.0 / 720.0;
     selTarget.pushMatrix();
     selTarget.translate(cPos.x * sx - offset, cPos.y * sy - offset);
-    selTarget.tint(GUI_COLOR, 127);
+    selTarget.tint(GUI_COLOR, 127 * guiOpacity);
     selTarget.image(hud_reticule, 0,0, offset * 2, offset * 2);
-    
     // Label cursor
     selTarget.translate(offset, offset);  // Go to the center of the reticule
-    selTarget.scale(0.5);
-    selTarget.fill(GUI_COLOR, 127);
+    selTarget.fill(GUI_COLOR, 127 * guiOpacity);
     selTarget.textAlign(LEFT, TOP);
+    selTarget.textSize(8 * selTarget.height / 1080.0);
     String coords = (cPos.x - 0.5 * selBuffer.width) + "\n" + (cPos.x - 0.5 * selBuffer.height);
     selTarget.text( coords, 0, 0 );
+    // Indicate player ship position
+    if(playerShip != null)
+    {
+      PVector pPercentPos = playerShip.getRoot().getWorldPosition();
+      PVector pPos = new PVector( fromPercentX(pPercentPos.x), fromPercent(pPercentPos.y) );
+      PVector curPos = getCursorNormalized();
+      curPos.set( curPos.x * selTarget.width, curPos.y * selTarget.height );
+      PVector pointer = PVector.sub(pPos, curPos);
+      PVector pointerOffset = pointer.get();
+      pointerOffset.normalize();
+      pointerOffset.mult(offset * 0.92);
+      PVector playerOffset = pointer.get();
+      playerOffset.normalize();
+      playerOffset.mult( 4.0 * fromPercent(playerShip.radius) );
+      if( pointerOffset.mag() + playerOffset.mag() < pointer.mag() )
+      {
+        pointer.sub(pointerOffset);
+        pointer.sub(playerOffset);
+        selTarget.pushMatrix();
+        selTarget.translate(pointerOffset.x, pointerOffset.y);
+        selTarget.stroke(GUI_COLOR, 48 * guiOpacity);
+        selTarget.strokeWeight(selTarget.height * 2.0 / 1080.0);
+        selTarget.line(0,0, pointer.x, pointer.y);
+        selTarget.popMatrix();
+      }
+    }
+    // Finish cursor
     selTarget.popMatrix();
-    
     selTarget.popStyle();
   }
   // renderMoVis
