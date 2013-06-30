@@ -22,6 +22,10 @@ uniform sampler2D warpMap;
 uniform vec2 aspectRatioCorrection;
 // Input 4: pre-rendered background map
 uniform sampler2D backgroundMap;
+// Input 5: foreground elements (such as HUD)
+uniform sampler2D foregroundMap;
+// Input 6: viewscreen warp
+uniform sampler2D screenWarpMap;
 
 
 // Chromatic abberation parameters
@@ -51,18 +55,19 @@ float hardLightChannel(float base, float light)
 
 vec4 texture2DChromaticAberration(sampler2D src, vec2 coordR, vec2 coordG, vec2 coordB)
 {
-	return(	vec4(texture2D(src, coordR).r,
-			texture2D(src, coordG).g, 
-			texture2D(src, coordB).b, 
-			( texture2D(src, coordR).a +
-			texture2D(src, coordG).a + 
-			texture2D(src, coordB).a ) / 3.0 )		);
+	vec4 colR = texture2D(src, coordR);
+	vec4 colG = texture2D(src, coordG);
+	vec4 colB = texture2D(src, coordB);
+	
+	return(	vec4(colR.r, colG.g, colB.b, ( colR.a + colG.a + colB.a ) / 3.0 ) );
 }
 
 
 void main() {
 	// Get screen distortion values
-	vec4 warpCol = texture2D(warpMap, vertTexCoord.xy) * normalScalar + normalAdder;
+	vec4 screenWarpCol = texture2D(screenWarpMap, vertTexCoord.xy) * normalScalar + normalAdder;
+	// Get space distortion values
+	vec4 warpCol = (texture2D(warpMap, vertTexCoord.xy) * normalScalar + normalAdder) + screenWarpCol;
 	
 	/*
 	// Create new texture coordinate
@@ -78,10 +83,17 @@ void main() {
 	vec2 cursorG = vec2(vertTexCoord.xy + warpCol.xy * chromAb.g * aspectRatioCorrection);
 	vec2 cursorB = vec2(vertTexCoord.xy + warpCol.xy * chromAb.b * aspectRatioCorrection);
 	
+	// Create screen chromatic abberation coordinates
+	vec2 cursorRs = vec2(vertTexCoord.xy + screenWarpCol.xy * chromAb.r * aspectRatioCorrection);
+	vec2 cursorGs = vec2(vertTexCoord.xy + screenWarpCol.xy * chromAb.g * aspectRatioCorrection);
+	vec2 cursorBs = vec2(vertTexCoord.xy + screenWarpCol.xy * chromAb.b * aspectRatioCorrection);
+	
 	vec4 bgCol = texture2DChromaticAberration(backgroundMap, cursorR, cursorG, cursorB);
 	vec4 diffCol = texture2DChromaticAberration(texture, cursorR, cursorG, cursorB);
 	vec4 lightCol = texture2DChromaticAberration(lightMap, cursorR, cursorG, cursorB);
 	vec4 emitCol = texture2DChromaticAberration(emitMap, cursorR, cursorG, cursorB);
+	// Foreground seeks without in-scene warp
+	vec4 fgCol = texture2DChromaticAberration(foregroundMap, cursorRs, cursorGs, cursorBs);
 	
 	// Perform hard light operation
 	vec4 litDiffCol = vec4(	hardLightChannel(diffCol.r, lightCol.r), 
@@ -91,6 +103,9 @@ void main() {
 	
 	// Mix to background map
 	vec4 litOnBGCol = mix(bgCol, litDiffCol, litDiffCol.a);
+	// Add foreground
+	//litOnBGCol = mix(litOnBGCol, fgCol, fgCol.a);
+	litOnBGCol += fgCol;
 	
 	gl_FragColor = litOnBGCol + emitCol;
 }

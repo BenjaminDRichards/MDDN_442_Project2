@@ -3,7 +3,7 @@ import java.util.*;
 class RenderManager
 // Handles all the complicated parts of a multipass multishader render pipeline
 {
-  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput, bBackground;
+  PGraphics bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput, bBackground, bForeground, bScreenWarp;
   PShader shaderNorm, shaderLight, shaderComp, shaderBloom, shaderAdd, shaderScreen;
   ArrayList sprites, lights;
   PImage fullBackground, fullDiffuse, fullNormal, fullSpecular, fullEmissive, fullWarp, fullLight;  // Background fill sources
@@ -21,6 +21,8 @@ class RenderManager
     // Set buffers to match output dimensions
     int rx = bOutput.width;
     int ry = bOutput.height;
+    //int rxLow = rx / 2;
+    //int ryLow = ry / 2;
     bDiffuse = createGraphics(rx, ry, P2D);
     bNormal = createGraphics(rx, ry, P2D);
     bSpecular = createGraphics(rx, ry, P2D);
@@ -28,12 +30,14 @@ class RenderManager
     bEmissive = createGraphics(rx, ry, P2D);
     bWarp = createGraphics(rx, ry, P2D);
     bBackground = createGraphics(rx, ry, P2D);
+    bForeground = createGraphics(rx, ry, P2D);
+    bScreenWarp = createGraphics(rx, ry, P2D);
     
     // Initialise shaders
     shaderNorm = loadShader("shaders/tex_normDeferrer.frag.glsl", "shaders/tex.vert.glsl");
     shaderLight = loadShader("shaders/tex_lightByImage.frag.glsl", "shaders/tex.vert.glsl");
     shaderComp = loadShader("shaders/tex_deferCompositor.frag.glsl", "shaders/tex.vert.glsl");
-    shaderBloom = loadShader("shaders/tex_bloom.frag.glsl", "shaders/tex.vert.glsl");
+    shaderBloom = loadShader("shaders/tex_bloomMax.frag.glsl", "shaders/tex.vert.glsl");
     shaderAdd = loadShader("shaders/tex_add.frag.glsl", "shaders/tex.vert.glsl");
     shaderScreen = loadShader("shaders/tex_screen.frag.glsl", "shaders/tex.vert.glsl");
     
@@ -41,6 +45,12 @@ class RenderManager
     bBackground.beginDraw();
     bBackground.image(tex_backdrop, 0,0, bBackground.width, bBackground.height);
     bBackground.endDraw();
+    bForeground.beginDraw();
+    bForeground.clear();
+    bForeground.endDraw();
+    bScreenWarp.beginDraw();
+    bScreenWarp.image(tex_warpBackdrop, 0,0, bBackground.width, bBackground.height);
+    bScreenWarp.endDraw();
     bWarp.beginDraw();
     bWarp.background(127,127,255);
     bWarp.endDraw();
@@ -60,6 +70,7 @@ class RenderManager
     bBloomHorizontal = createGraphics( int(rx * bloomMapScale), int(ry * bloomMapScale), P2D );
     bBloomVertical = createGraphics( int(rx * bloomMapScale), int(ry * bloomMapScale), P2D );
     bBloomCache = createGraphics(rx, ry, P2D);
+    println("BLOOM RESOLUTION [ " + bBloom.width + ", " + bBloom.height + " ]");
   }
   
   
@@ -67,6 +78,7 @@ class RenderManager
   {
     // Apply sprites
     // These must be iterated several times for different buffers
+    
     
     // Diffuse pass
     bDiffuse.beginDraw();
@@ -195,7 +207,7 @@ class RenderManager
     {
       bWarp.pushStyle();
       bWarp.shader(shaderNorm);
-      bWarp.tint(255, 192);
+      //bWarp.tint(255, 192);
       shaderNorm.set("worldAngle", 0.0);
       bWarp.image(fullWarp, 0,0, bWarp.width, bWarp.height);
       bWarp.popStyle();
@@ -235,6 +247,7 @@ class RenderManager
     // Fullscreen pass
     if(fullLight != null)
     {
+      // This is NOT run thru the shader
       bLight.image(fullLight, 0,0, bLight.width, bLight.height);
     }
     // Step through lights
@@ -255,6 +268,8 @@ class RenderManager
     shaderComp.set("emitMap", bEmissive);
     shaderComp.set("warpMap", bWarp);
     shaderComp.set("backgroundMap", bBackground);
+    shaderComp.set("foregroundMap", bForeground);
+    shaderComp.set("screenWarpMap", bScreenWarp);
     shaderComp.set("aspectRatioCorrection", bOutput.height / (float) bOutput.width,  1.0);
     if( !bOutput.equals(g) )  bOutput.beginDraw();
     bOutput.shader(shaderComp);
@@ -266,6 +281,10 @@ class RenderManager
     // Run bloom shader
     if(doBloom)
     {
+      // Parameters
+      float bloomStep = 4.0 / 720.0;
+      float bloomFallPower = 3.5;
+      
       // Cache graphics
       bBloomCache.beginDraw();
       bBloomCache.image(bOutput, 0,0, bBloomCache.width, bBloomCache.height);
@@ -273,26 +292,24 @@ class RenderManager
       
       // Compute horizontal bloom map
       bBloomHorizontal.beginDraw();
-      bBloomHorizontal.clear();
+      //bBloomHorizontal.clear();
       bBloomHorizontal.shader(shaderBloom);
-      shaderBloom.set("bloomFallPower", 2.0);
+      shaderBloom.set("bloomFallPower", bloomFallPower);
       shaderBloom.set("bloomSteps", 8.0, 0.0);
-      float bloomStep = 8.0 / 720.0;
       shaderBloom.set("bloomDist",  bloomStep * bOutput.height / (float)bOutput.width,   bloomStep);
       bBloomHorizontal.image(bOutput, 0,0, bBloomHorizontal.width, bBloomHorizontal.height);
-      bBloomHorizontal.resetShader();
+      //bBloomHorizontal.resetShader();
       bBloomHorizontal.endDraw();
       
       // Compute vertical bloom map
       bBloomVertical.beginDraw();
-      bBloomVertical.clear();
+      //bBloomVertical.clear();
       bBloomVertical.shader(shaderBloom);
-      shaderBloom.set("bloomFallPower", 2.0);
+      shaderBloom.set("bloomFallPower", bloomFallPower);
       shaderBloom.set("bloomSteps", 0.0, 4.0);
-      bloomStep = 8.0 / 720.0;
       shaderBloom.set("bloomDist",  bloomStep * bOutput.height / (float)bOutput.width,   bloomStep);
       bBloomVertical.image(bOutput, 0,0, bBloomVertical.width, bBloomVertical.height);
-      bBloomVertical.resetShader();
+      //bBloomVertical.resetShader();
       bBloomVertical.endDraw();
       
       // Combine bloom maps
@@ -301,6 +318,17 @@ class RenderManager
       shaderScreen.set("texture2", bBloomVertical);
       bBloom.image(bBloomHorizontal, 0,0, bBloomVertical.width, bBloomVertical.height);
       bBloom.endDraw();
+      
+      /*
+      bBloom.beginDraw();
+      bBloom.clear();
+      bBloom.shader(shaderBloom);
+      shaderBloom.set("bloomFallPower", bloomFallPower);
+      shaderBloom.set("bloomSteps", 8.0, 4.0);
+      shaderBloom.set("bloomDist",  bloomStep * bOutput.height / (float)bOutput.width,   bloomStep);
+      bBloom.image(bOutput, 0,0, bBloom.width, bBloom.height);
+      bBloom.endDraw();
+      */
       
       // Apply bloom map
       if( !bOutput.equals(g) )  bOutput.beginDraw();

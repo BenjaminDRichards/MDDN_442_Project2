@@ -65,6 +65,7 @@ class Light
   public void renderPoint(PImage normalBuffer, PImage specularBuffer, PGraphics lightBuffer, PShader shader)
   {
     // Set shader options
+    lightBuffer.shader(shader);
     shader.set("lightSpecularPower", specularPower);
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
@@ -93,14 +94,13 @@ class Light
     shader.set("mapCoordOffset", mapOffset.x, mapOffset.y);
     
     // Render
-    lightBuffer.shader(shader);
     lightBuffer.pushMatrix();
+    lightBuffer.scale(lightBuffer.width / (float) normalBuffer.width,  lightBuffer.height / (float) normalBuffer.height);
     lightBuffer.translate(pos.x, pos.y);
     //lightBuffer.rotate( transform.getWorldRotation() );
     lightBuffer.translate( -mDiameter / 2.0,  -mDiameter / 2.0 );
     lightBuffer.image(stencil, 0, 0, mDiameter, mDiameter);
     lightBuffer.popMatrix();
-    lightBuffer.resetShader();
   }
   // renderPoint
   
@@ -108,6 +108,7 @@ class Light
   public void renderDirectional(PImage normalBuffer, PImage specularBuffer, PGraphics lightBuffer, PShader shader)
   {
     // Set shader options
+    lightBuffer.shader(shader);
     shader.set("lightSpecularPower", specularPower);
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
@@ -121,9 +122,7 @@ class Light
     shader.set("mapCoordOffset", 0.0, 0.0);
     
     // Render
-    lightBuffer.shader(shader);
     lightBuffer.image(filler, 0, 0, lightBuffer.width, lightBuffer.height);
-    lightBuffer.resetShader();
   }
   // render
   
@@ -152,13 +151,10 @@ class Light
   {
     dir = direction.get();
     dir.normalize();
-    // Build colour - note that coords are rgb:yxz and scaled [1, -1, -1]
-    color texDir = color(255 * (dir.y * 0.5 + 0.5), 255 * (-dir.x * 0.5 + 0.5), 255 * (-dir.z * 0.5 + 0.5), 255);
+    // Build colour - note that Y is inverse
+    color texDir = color(255.0 * (-dir.x * 0.5 + 0.5), 255.0 * (dir.y * 0.5 + 0.5), 255.0 * (-dir.z * 0.5 + 0.5), 255.0);
     filler.beginDraw();
-    filler.clear();
-    filler.noStroke();
-    filler.fill(texDir);
-    filler.rect(0,0, filler.width, filler.height);
+    filler.background(texDir);
     filler.endDraw();
   }
   // setDir

@@ -9,7 +9,8 @@ class MotionCursor
   private float THRESH_BRI;      // Level at which pixels get counted
   private PGraphics selBuffer;   // Buffer for motion visualisation
   private PGraphics selTarget;   // Target for rendering motion visualisation
-  private boolean selDraw;       // Do we draw the motion vis?
+  boolean selDraw;       // Do we draw the motion vis?
+  boolean selDrawCam;    // Do we draw the camera feed?
   private PShader shaderMoVis;   // Accelerated high-quality visualiser
   float pipHeight;               // Diagnostic display parameter
   
@@ -26,6 +27,7 @@ class MotionCursor
     selBuffer = createGraphics(160, 120, P2D);
     selTarget = g;
     selDraw = true;
+    selDrawCam = true;
     shaderMoVis = loadShader("shaders/camera/tex_motionVisualiser.frag.glsl", "shaders/camera/tex.vert.glsl");
     pipHeight = 64;    // Default, will be overridden
   }
@@ -116,6 +118,8 @@ class MotionCursor
   public void renderMoVis()
   // Renders the motion visualisation
   {
+    selTarget.beginDraw();
+    
     // Style MoVis
     selTarget.pushStyle();
     
@@ -124,32 +128,40 @@ class MotionCursor
     float sy = selTarget.height / (float) selBuffer.height;
     
     // Opacity dim for power saving
-    float guiOpacity = 1.0;
+    float guiOpacity = 0.5;
     if(playerShip != null)
     {
-      guiOpacity = 1.0 - 0.75 * playerShip.cloakActivation;
+      guiOpacity -= 0.35 * playerShip.cloakActivation;
     }
     
     // Shader border detection
-    selTarget.shader(shaderMoVis);
-    selTarget.tint(GUI_COLOR, 255 * guiOpacity);
-    shaderMoVis.set("resolution", (float)selBuffer.width, (float)selBuffer.height);
-    selTarget.image(selBuffer, 0,0, selTarget.width, selTarget.height);
-    selTarget.resetShader();
+    if(selDrawCam)
+    {
+      selTarget.shader(shaderMoVis);
+      selTarget.tint(GUI_COLOR, 127 * guiOpacity);
+      shaderMoVis.set("resolution", (float)selBuffer.width, (float)selBuffer.height);
+      selTarget.image(selBuffer, 0,0, selTarget.width, selTarget.height);
+      selTarget.resetShader();
+    }
     
     // Render cursor
     float offset = selTarget.height * 64.0 / 720.0;
     selTarget.pushMatrix();
-    selTarget.translate(cPos.x * sx - offset, cPos.y * sy - offset);
-    selTarget.tint(GUI_COLOR, 127 * guiOpacity);
+    selTarget.translate(cPos.x * sx, cPos.y * sy);  // Reticule centre
+    selTarget.pushMatrix();
+    selTarget.translate(-offset, -offset);          // Reticule corner
+    selTarget.tint(GUI_COLOR, 255 * guiOpacity);
     selTarget.image(hud_reticule, 0,0, offset * 2, offset * 2);
+    selTarget.popMatrix();
     // Label cursor
-    selTarget.translate(offset, offset);  // Go to the center of the reticule
-    selTarget.fill(GUI_COLOR, 127 * guiOpacity);
+    // Very lossy
+    /*
+    selTarget.fill(GUI_COLOR, 255 * guiOpacity);
     selTarget.textAlign(LEFT, TOP);
     selTarget.textSize(8 * selTarget.height / 1080.0);
     String coords = (cPos.x - 0.5 * selBuffer.width) + "\n" + (cPos.x - 0.5 * selBuffer.height);
     selTarget.text( coords, 0, 0 );
+    */
     // Indicate player ship position
     if(playerShip != null)
     {
@@ -160,7 +172,7 @@ class MotionCursor
       PVector pointer = PVector.sub(pPos, curPos);
       PVector pointerOffset = pointer.get();
       pointerOffset.normalize();
-      pointerOffset.mult(offset * 0.92);
+      pointerOffset.mult(offset * 0.93);
       PVector playerOffset = pointer.get();
       playerOffset.normalize();
       playerOffset.mult( 4.0 * fromPercent(playerShip.radius) );
@@ -170,7 +182,7 @@ class MotionCursor
         pointer.sub(playerOffset);
         selTarget.pushMatrix();
         selTarget.translate(pointerOffset.x, pointerOffset.y);
-        selTarget.stroke(GUI_COLOR, 48 * guiOpacity);
+        selTarget.stroke(GUI_COLOR, 64 * guiOpacity);
         selTarget.strokeWeight(selTarget.height * 2.0 / 1080.0);
         selTarget.line(0,0, pointer.x, pointer.y);
         selTarget.popMatrix();
@@ -179,6 +191,7 @@ class MotionCursor
     // Finish cursor
     selTarget.popMatrix();
     selTarget.popStyle();
+    selTarget.endDraw();
   }
   // renderMoVis
   

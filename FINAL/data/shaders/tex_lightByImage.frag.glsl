@@ -57,9 +57,17 @@ void main() {
 		// Counter-rotate light vector
 		float x = lightVec.x;
 		float y = lightVec.y;
+		
+		/*
 		float ang = -worldAngle;
 		x = x * ( cos(ang) - sin(ang) );
 		y = y * ( sin(ang) + cos(ang) );
+		*/
+		float derivedAngle = atan(y, x) - worldAngle;
+		float d = length( vec2(x, y) );
+		x = cos(derivedAngle) * d;
+		y = sin(derivedAngle) * d;
+	
 		lightVec = vec4(x, y, lightVec.z, lightVec.a);
 		
 		// Derive diffuse lighting

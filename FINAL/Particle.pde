@@ -96,7 +96,7 @@ class Particle
   
   private float getAlpha(int mode)
   {
-    float ageAlpha = 1.0 - age / ageMax;
+    float ageAlpha = 1.0 - (age / ageMax);
     switch(mode)
     {
       case FADE_LINEAR:

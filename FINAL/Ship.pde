@@ -141,7 +141,7 @@ class Ship
     
     // Stealth data
     excitement = 0;  // This must be extracted from slave ships
-    excitementDecay = 0.004;
+    excitementDecay = 0.008;
     communicateExcitement = false;
     cloakOnInactive = false;
     cloaked = false;        // Communicate to slave ships
@@ -250,41 +250,6 @@ class Ship
     }
   }
   // render
-  
-  
-  public void render(PGraphics pg)
-  {
-    Iterator i = sprites.iterator();
-    while( i.hasNext() )
-    {
-      Sprite s = (Sprite) i.next();
-      s.render(pg);
-    }
-    
-    // Particles
-    pg.pushStyle();
-    pg.stroke(255);
-    pg.strokeWeight(0.1);
-    i = particles.iterator();
-    while( i.hasNext() )
-    {
-      Particle p = (Particle) i.next();
-      p.render(pg);
-    }
-    pg.popStyle();
-    
-    // Do slaves
-    Iterator j = slaves.iterator();
-    while( j.hasNext() )
-    {
-      Ship slave = (Ship) j.next();
-      slave.render(pg);
-    }
-  }
-  // render
-  
-  public void render()
-  {  render(g);  }
   
   
   
@@ -441,8 +406,8 @@ class Ship
       PVector vecToEnemy = PVector.sub(enemyPos, rpos);
       float angToEnemy = vecToEnemy.heading();
       float angDiff = angToEnemy - rang;
-      float rangeLow = turretRange.x + root.getLocalRotation();
-      float rangeHigh = turretRange.y + root.getLocalRotation();
+      //float rangeLow = turretRange.x + root.getLocalRotation();
+      //float rangeHigh = turretRange.y + root.getLocalRotation();
       //if( turretRange.x < angToEnemy  &&  angToEnemy < turretRange.y  &&  vecToEnemy.mag() < turretRange.z )
       //if( rangeLow < angToEnemy  &&  angToEnemy < rangeHigh  &&  vecToEnemy.mag() < turretRange.z )
       if( vecToEnemy.mag() < turretRange.z )
@@ -1626,7 +1591,7 @@ class Ship
     maxTurn = 0.0;
     thrust = 0;
     turnThrust = 0;
-    radius = 1.0;
+    radius = 0.0;
     rateVel = 2.0;
     drag = 1.0;  // No friction
     brake = 0.0;

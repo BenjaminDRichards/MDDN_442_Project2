@@ -277,7 +277,7 @@ class DAGTransform
     PVector tempPos = PVector.sub(worldPos, pwPos);
     float tempPosX = tempPos.x;
     float tempPosY = tempPos.y;
-    float tempPosZ = tempPos.z;
+    //float tempPosZ = tempPos.z;
     
     // Unrotate
     float theta = atan2(tempPosY, tempPosX)  -  pwRot;

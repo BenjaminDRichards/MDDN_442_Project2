@@ -48,21 +48,6 @@ class ShipManager
   // render
   
   
-  public void render(PGraphics pg)
-  {
-    Iterator i = ships.iterator();
-    while( i.hasNext() )
-    {
-      Ship s = (Ship) i.next();
-      s.render(pg);
-    }
-    
-    // Render weapon effects over all the ships
-  }
-  public void render()  {  render(g);  }
-  // render
-  
-  
   public Ship makeShip(PVector pos, PVector targetPos, int model, int team)
   {
     Ship ship = new Ship(pos, targetPos, Ship.NAV_MODE_AVOID, this, team);

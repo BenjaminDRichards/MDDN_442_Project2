@@ -18,17 +18,19 @@ int MIN_SHIP_COUNT = 8;
 
 PGraphics output;              // Used for accelerated draw on slower machines
 PVector bufferRes;
-RenderManager renderManager, renderManagerScreen;
+RenderManager renderManager;
+Hud hud;
 
 Capture cam;
-boolean camConnected;
+boolean camConnected, camActive;
 BackgroundLearner bgLearn;
 MotionCursor motionCursor;
 boolean diagnoseBuffers;
-color GUI_COLOR = color(255, 192, 64);
+color GUI_COLOR = color(255, 192, 96);
 
 ArrayList sceneLights;
 
+PFont font;
 PImage lightStencil;
 PGraphics testShipSprite;
 PGraphics tex_flatWhite, tex_flatBlack, tex_flatNorm, tex_flatNull;
@@ -41,6 +43,7 @@ PImage fx_streak, fx_streakPC;
 PImage fx_wrinkle8, fx_wrinkle64, fx_wrinkle256;
 
 PImage hud_reticule;
+PImage hud_element_helm, hud_element_offline, hud_element_online, hud_element_stealth;
 
 PImage ship_preya_bridge_diff;
 PImage ship_preya_bridge_norm;
@@ -89,8 +92,23 @@ PImage ship_preya_thrusterR_warp;
 
 void setup()
 {
-  size(displayWidth, displayHeight, P2D);
-  //size(1280, 720, P2D);
+  // Letterbox parameters
+  float resX = 16;
+  float resY = 9;
+  float idealRatio = resX / resY;
+  float screenRatio = displayWidth / (float)displayHeight;
+  if(screenRatio < idealRatio)    {  resX = resY * screenRatio;  }
+  else                            {  resY = resX / screenRatio;  }
+  // Resize buffer
+  resX *= displayWidth / resX;
+  resY *= displayHeight / resY;
+  
+  /*
+  SET RESOLUTION
+  */
+  size(int(resX), int(resY), P2D);
+  //size(640, 360, P2D);            // For diagnostics - currently, it doesn't run much faster
+  frameRate(30);                    // Because it's plenty smooth at 30 and 15 is too low
   
   noCursor();
   
@@ -133,6 +151,9 @@ void setup()
   
   
   // Load resources
+  font = loadFont("DroidSans-18.vlw");
+  textFont(font);
+  
   lightStencil = loadImage("images/lightStencil16.png");
   
   tex_backdrop = loadImage("images/starscape2-suns.png");
@@ -159,6 +180,10 @@ void setup()
   fx_wrinkle256 = loadImage("images/effects/wrinkle256.png");
   
   hud_reticule = loadImage("images/hud/HUDreticule.png");
+  hud_element_helm = loadImage("images/hud/HUD_elements_helm.png");
+  hud_element_offline = loadImage("images/hud/HUD_elements_offline.png");
+  hud_element_online = loadImage("images/hud/HUD_elements_online.png");
+  hud_element_stealth = loadImage("images/hud/HUD_elements_stealth.png");
   
   ship_preya_bridge_diff = loadImage("images/ships/PreyA/PreyA_bridge_diff.png");
   ship_preya_bridge_norm = loadImage("images/ships/PreyA/PreyA_bridge_norm.png");
@@ -212,8 +237,12 @@ void setup()
   
   // Setup draw buffer
   // Comply with screen aspect ratio
+  float outputResX = displayWidth;
+  float outputResY = displayHeight;
+  /*
   float outputResX = 1920;
   float outputResY = 1080;
+  */
   float expectedRatio = outputResX / outputResY;
   float actualRatio = width / (float)height;
   if(actualRatio < expectedRatio)    outputResX = outputResY * actualRatio;
@@ -226,46 +255,10 @@ void setup()
   }
   bufferRes = new PVector(outputResX, outputResY);
   output = createGraphics( int(bufferRes.x), int(bufferRes.y), P2D);
+  println("BUFFER RESOLUTION " + bufferRes);
   
   
-  // Setup renderers
-  renderManager = new RenderManager(output);
-  renderManager.fullWarp = tex_flatNorm;
-  renderManager.doBloom = true;
-  
-  renderManagerScreen = new RenderManager(g);
-  renderManagerScreen.bBackground = output;
-  renderManagerScreen.fullWarp = tex_warpBackdrop;
-  
-  
-  
-  // Setup constant lights
-  sceneLights = new ArrayList();
-  // Directional lights
-  DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
-  Light dirl = new Light(dirlDag, 0.2, color(192, 222, 255, 255));
-  dirl.makeDirectional( new PVector(0.2, -1, 0.2) );
-  sceneLights.add(dirl);
-  dirl = new Light(dirlDag, 0.2, color(255,247,255, 255));
-  dirl.makeDirectional( new PVector(-1, -1, 0.3) );
-  sceneLights.add(dirl);
-  /*
-  RGB test lights
-  dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
-  dirl = new Light(dirlDag, 0.6, color(255, 0, 0, 255));
-  dirl.makeDirectional( new PVector(-0.0, -1, -0.0) );
-  sceneLights.add(dirl);
-  dirl = new Light(dirlDag, 0.6, color(0, 255, 0, 255));
-  dirl.makeDirectional( new PVector(1, 0, -0.0) );
-  sceneLights.add(dirl);
-  dirl = new Light(dirlDag, 0.6, color(0, 0, 255, 255));
-  dirl.makeDirectional( new PVector(0, 0, 1.0) );
-  sceneLights.add(dirl);
-  */
-  
-  
-  
-  // Ship code
+  // Populate ships
   sceneShipManager = new ShipManager();
   {
     // PLAYER VESSEL
@@ -281,6 +274,41 @@ void setup()
   {
     spawnShipPreyA();
   }
+  
+  
+  // Setup renderers
+  hud = new Hud(output);
+  
+  renderManager = new RenderManager(output);
+  renderManager.fullWarp = tex_flatNorm;
+  renderManager.doBloom = true;
+  renderManager.bForeground = hud.output;
+  
+  
+  
+  // Setup constant lights
+  sceneLights = new ArrayList();
+  // Directional lights
+  DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
+  Light dirl = new Light(dirlDag, 0.2, color(192, 222, 255, 255));
+  dirl.makeDirectional( new PVector(0.2, -1, 0.2) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.2, color(255,247,255, 255));
+  dirl.makeDirectional( new PVector(-1, -1, 0.3) );
+  sceneLights.add(dirl);
+  /*
+  // RGB test lights
+  DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
+  Light dirl = new Light(dirlDag, 0.6, color(255, 0, 0, 255));
+  dirl.makeDirectional( new PVector(-0.0, -1, -0.0) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.6, color(0, 255, 0, 255));
+  dirl.makeDirectional( new PVector(1, 0, -0.0) );
+  sceneLights.add(dirl);
+  dirl = new Light(dirlDag, 0.6, color(0, 0, 255, 255));
+  dirl.makeDirectional( new PVector(0, 0, 1.0) );
+  sceneLights.add(dirl);
+  */
   
   
   
@@ -313,9 +341,11 @@ void setup()
     // Setup camera systems
     bgLearn = new BackgroundLearner(cam);
   }
+  camActive = camConnected;
   motionCursor = new MotionCursor();
-  motionCursor.setDrawTarget(output);
-  motionCursor.run(tex_flatWhite);      // Pretouch systems
+  motionCursor.setDrawTarget(hud.output);
+  motionCursor.selDrawCam = camConnected;
+  motionCursor.run(tex_flatBlack);      // Pretouch systems
   diagnoseBuffers = false;
 }
 // setup
@@ -331,7 +361,7 @@ void draw()
   */
   
   // Handle camera input
-  if(camConnected)
+  if(camActive)
   {
     cam.read();
     bgLearn.run();
@@ -367,35 +397,30 @@ void draw()
   // Manage ships
   sceneShipManager.run(story.tick);
   sceneShipManager.render(renderManager);
-  if(sceneShipManager.ships.size() < MIN_SHIP_COUNT)
+  if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
   {
     spawnShipPreyA();
   }
+  
+  // Draw excitement meters and HUD
+  // These are hooked onto the renderManager's foreground feed
+  hud.drawHUD();
+  motionCursor.renderMoVis();
   
   // Perform final render
   renderManager.render();
   
   
-  
-  /*
-  UI DRAW
-  */
-  
-  // Draw excitement meters and HUD
-  output.beginDraw();
-  drawHUD(output);
-  output.endDraw();
-  
-  
   /*
   FINAL VISUAL COMPOSIT
   */
-  /*
   // Unfiltered output
+  //image(output, 0,0, width, height);
+  // Motion blur version
+  pushStyle();
+  tint(255, 64 * story.tick);
   image(output, 0,0, width, height);
-  */
-  // Post-processed output
-  renderManagerScreen.render();
+  popStyle();
   
   
   
@@ -409,8 +434,6 @@ void draw()
     bgLearn.diagnoseBuffers();
     motionCursor.diagnose();
   }
-  
-  //image(ship_preya_bridge_warp, 0,0);
   
   //background(255);
   //image(renderManager.bNormal, 0,0, width, height);
@@ -429,34 +452,57 @@ void draw()
 
 void keyPressed()
 {
-  if( key == 'S'  ||  key == 's' )  {  spawnShipPreyA();  }
+  if( key == 'S'  ||  key == 's' )
+  {
+    save("screenshots/MantleScreenshot_" + year() + nf(month(), 2) + nf(day(), 2) 
+      + "_" + nf(hour(), 2) + nf(minute(), 2) + nf(second(), 2) + "_" + millis() + ".jpg");
+  }
   
-  if( (key == '~'  ||  key == '`')  &&  camConnected )  {  diagnoseBuffers = !diagnoseBuffers;  }
-  
-  if( key == 'L'  ||  key == 'l' )  {  bgLearn.learnInstant();  }
-  
-  if( key == '1' )       {  bgLearn.slideCanvasBlur(0.001);  }
-  else if( key == '!' )  {  bgLearn.slideCanvasBlur(-0.001);  }
-  
-  if( key == '2' )       {  bgLearn.slideLearnRate(1.1);  }
-  else if( key == '@' )  {  bgLearn.slideLearnRate(1.0 / 1.1);  }
-  
-  if( key == '3' )       {  bgLearn.slideBackgroundThreshold(0.01);  }
-  else if( key == '#' )  {  bgLearn.slideBackgroundThreshold(-0.01);  }
-  
-  if( key == '4' )       {  bgLearn.slideHeatFade(1.0);  }
-  else if( key == '$' )  {  bgLearn.slideHeatFade(-1.0);  }
-  
-  if( key == '5' )       {  bgLearn.slideHeatIsoBlur(0.001);  }
-  else if( key == '%' )  {  bgLearn.slideHeatIsoBlur(-0.001);  }
-  
-  // Slide cursor brightness threshold
-  if( key == '6' )       {  motionCursor.slideThresholdBrightness(0.01);  }
-  else if( key == '^' )  {  motionCursor.slideThresholdBrightness(-0.01);  }
-  
-  // Slide cursor reliability threshold
-  if( key == '7' )       {  motionCursor.slideThresholdReliability(0.001);  }
-  else if( key == '&' )  {  motionCursor.slideThresholdReliability(-0.001);  }
+  if(camConnected)
+  {
+    if( (key == '~'  ||  key == '`'))  {  diagnoseBuffers = !diagnoseBuffers;  }
+    
+    if( key == 'L'  ||  key == 'l' )  {  bgLearn.learnInstant();  }
+    
+    if( key == '1' )       {  bgLearn.slideCanvasBlur(0.001);  }
+    else if( key == '!' )  {  bgLearn.slideCanvasBlur(-0.001);  }
+    
+    if( key == '2' )       {  bgLearn.slideLearnRate(1.1);  }
+    else if( key == '@' )  {  bgLearn.slideLearnRate(1.0 / 1.1);  }
+    
+    if( key == '3' )       {  bgLearn.slideBackgroundThreshold(0.01);  }
+    else if( key == '#' )  {  bgLearn.slideBackgroundThreshold(-0.01);  }
+    
+    if( key == '4' )       {  bgLearn.slideHeatFade(1.0);  }
+    else if( key == '$' )  {  bgLearn.slideHeatFade(-1.0);  }
+    
+    if( key == '5' )       {  bgLearn.slideHeatIsoBlur(0.001);  }
+    else if( key == '%' )  {  bgLearn.slideHeatIsoBlur(-0.001);  }
+    
+    // Slide cursor brightness threshold
+    if( key == '6' )       {  motionCursor.slideThresholdBrightness(0.01);  }
+    else if( key == '^' )  {  motionCursor.slideThresholdBrightness(-0.01);  }
+    
+    // Slide cursor reliability threshold
+    if( key == '7' )       {  motionCursor.slideThresholdReliability(0.001);  }
+    else if( key == '&' )  {  motionCursor.slideThresholdReliability(-0.001);  }
+    
+    // Disable camera
+    if( key == 'M'  ||  key == 'm' )
+    {
+      if(camActive)
+      {
+        cam.stop();
+        camActive = false;
+      }
+      else
+      {
+        cam.start();
+        camActive = true;
+      }
+      motionCursor.selDrawCam = camActive;
+    }
+  }
 }
 // keyPressed
 
@@ -498,105 +544,6 @@ void spawnShipPreyA()
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
 }
-
-
-void drawHUD(PGraphics pg)
-{
-  // Draw motion cursor tracking data
-  motionCursor.renderMoVis();
-  
-  float cloakDim = 1.0 - 0.5 * playerShip.cloakActivation;
-  
-  // Draw activity meters
-  pg.pushMatrix();
-  pg.pushStyle();
-  
-  pg.noStroke();
-  pg.fill(GUI_COLOR, 127 * cloakDim);
-  pg.textSize(18 * pg.height / 1080.0);
-  pg.translate(pg.width * 0.5, pg.height * 0.9);
-  if(0 < playerShip.excitement)
-  {
-    pg.rect(pg.width * 0.01, 0,  pg.width * 0.4 * playerShip.excitement, pg.height * 0.001);
-    pg.textAlign(RIGHT, BOTTOM);
-    if(playerShip.cloakActivation == 0)
-    {
-      String labelWeapons = "regional  supremacy  assertion  ONLINE";
-      pg.text(labelWeapons, pg.width * 0.41, pg.height * -0.01);
-    }
-  }
-  pg.textAlign(LEFT, TOP);
-  String labelExcite = "HELM  GUIDANCE        " + int(playerShip.excitement * 100) + " %";
-  pg.text(labelExcite, pg.width * 0.01, pg.height * 0.01);
-  if(0 < playerShip.cloakActivation)
-  {
-    pg.rect(pg.width * -0.01, 0,  -pg.width * 0.4 * playerShip.cloakActivation, pg.height * 0.001);
-    if(playerShip.cloaked)
-    {
-      pg.textAlign(LEFT, BOTTOM);
-      String labelDeactive = "power  conservation  mode  ACTIVE";
-      pg.text(labelDeactive, pg.width * -0.41, pg.height * -0.01);
-    }
-  }
-  pg.textAlign(RIGHT, TOP);
-  String labelCloak = int(playerShip.cloakActivation * 100) + " %         STEALTH  CAPACITORS";
-  pg.text(labelCloak, pg.width * -0.01, pg.height * 0.01);
-  
-  /*
-  SET DRESSING
-  */
-  pg.fill(GUI_COLOR, 64 * cloakDim);
-  
-  // Draw targeting array down the left
-  pg.pushMatrix();
-  pg.translate(pg.width * -0.41, pg.height * -0.04);
-  pg.scale(0.5);
-  pg.textAlign(LEFT, BOTTOM);
-  String targetingList = "";//"regional  space  survey \n    scan items";
-  Iterator iShips = sceneShipManager.ships.iterator();
-  iShips.next();
-  while( iShips.hasNext() )
-  {
-    Ship s = (Ship) iShips.next();
-    PVector pos = s.getRoot().getWorldPosition();
-    String label = "\n" + s;
-    label += "\n    " + pos.x;
-    label += ",  " + pos.y;
-    targetingList += label;
-  }
-  targetingList += "\n\nPRAScan\nregional  space  survey \n    scan items";
-  pg.text(targetingList, 0,0);
-  pg.popMatrix();
-  
-  
-  // Draw movement block at right
-  pg.pushMatrix();
-  pg.translate(pg.width * 0.41, pg.height * -0.04);
-  pg.textAlign(RIGHT, BOTTOM);
-  String textRight = "";
-  // Draw fps
-  textRight += int(frameRate) + "  fps\n";
-  // Draw story time
-  textRight += int(story.tickTotal) + "  clock cycles\n";
-  textRight += int( millis() ) + "  ms  uptime\n";
-  // Draw movement
-  PVector playerPos = playerShip.getRoot().getWorldPosition();
-  // Measuring in femtoparsecs, the screen is ~ 3km tall
-  textRight += (int)playerPos.x + "  fpc\n" + (int)playerPos.y + "  fpc\n";
-  textRight += (int)degrees( playerShip.getRoot().getWorldRotation() ) + "\n";
-  // Draw artist name
-  textRight += "MANTLE.mddn442.benjamin.d.richards.20130628\n";
-  
-  pg.text(textRight, 0,0);
-  
-  pg.popMatrix();
-  
-  
-  pg.popStyle();
-  pg.popMatrix();
-}
-// drawHUD
-
 
 
 PGraphics normalToWarp(PImage normalSource, String name)

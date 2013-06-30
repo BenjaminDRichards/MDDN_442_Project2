@@ -22,7 +22,7 @@ vec4 threshold(vec4 col)
 	{
 		return( vec4(0.0, 0.0, 0.0, 0.0) );
 	}
-	return( vec4(1.0, 1.0, 1.0, 0.04) );
+	return( vec4(1.0, 1.0, 1.0, 0.2) );
 }
 
 
@@ -44,7 +44,7 @@ void main() {
 		// Difference
 		if( abs(intProbe.y - vertTexCoord.y) < 0.1 / resolution.y )
 		{
-			probeCol = vec4(1.0, 1.0, 1.0, 0.25);
+			probeCol = vec4(1.0, 1.0, 1.0, 1.0);
 		}
 	}
 	if( probeCol.r != xCol.r )
@@ -52,9 +52,9 @@ void main() {
 		// Difference
 		if( abs(intProbe.x - vertTexCoord.x) < 0.05 / resolution.y )
 		{
-			probeCol = vec4(1.0, 1.0, 1.0, 0.25);
+			probeCol = vec4(1.0, 1.0, 1.0, 1.0);
 		}
 	}
 	
-	gl_FragColor = vec4(probeCol.rgb * vertColor.rgb, probeCol.a);
+	gl_FragColor = probeCol * vertColor;
 }

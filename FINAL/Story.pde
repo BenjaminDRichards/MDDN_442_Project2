@@ -13,11 +13,14 @@ Includes time management.
 */
 {
   // Scene
-  ArrayList sprites;
   boolean recording;
   
   // Event manager
   ArrayList storyEvents;
+  
+  // Event codes
+  public static final int START_RECORDING = 901;
+  public static final int PROGRAM_END = 999;
   
   // Time parameters
   int timeMode;      // 0 = realtime, 1 = render every frame
@@ -42,7 +45,6 @@ Includes time management.
     storyEvents = new ArrayList();
     
     // Setup scene
-    sprites = new ArrayList();
     recording = false;
     
     // Setup story
@@ -146,10 +148,10 @@ Includes time management.
     
     switch(code)
     {
-      case 901:
+      case START_RECORDING:
         cmd_start_recording();
         break;
-      case 999:
+      case PROGRAM_END:
         cmd_program_end();
         break;
       default:
@@ -178,69 +180,16 @@ Includes time management.
   // cmd_program_end
   
   
-  public ArrayList getSprites()
-  {
-    return( sprites );
-  }
-  // getSprites
-  
-  
   
   void setupStory()
   // Script the sequence of events
   {
     // Do recording
-    //makeEvent(0, 901);
+    //makeEvent(0, START_RECORDING);
     
     // Termination
-    //makeEvent(3600, 999);
+    //makeEvent(3600, PROGRAM_END);
   }
   // setupStory
-  
-  
-  public void makeSlider(DAGTransform adagr, DAGTransform key1, DAGTransform key2)
-  // Creates a slider for "adagr", between key1 and key2
-  {
-    // Comply flags from adagr
-    key1.useWorldSpace = adagr.useWorldSpace;
-    key1.usePX = adagr.usePX;    key1.usePY = adagr.usePY;    key1.usePZ = adagr.usePZ;
-    key1.useR = adagr.useR;
-    key1.useSX = adagr.useSX;    key1.useSY = adagr.useSY;    key1.useSZ = adagr.useSZ;
-    key2.useWorldSpace = adagr.useWorldSpace;
-    key2.usePX = adagr.usePX;    key2.usePY = adagr.usePY;    key2.usePZ = adagr.usePZ;
-    key2.useR = adagr.useR;
-    key2.useSX = adagr.useSX;    key2.useSY = adagr.useSY;    key2.useSZ = adagr.useSZ;
-    
-    // Create slider
-    Animator slider = new Animator(adagr, key1, key2, Animator.ANIM_TWEEN_SMOOTH, 1);
-    slider.useSlider(true);
-    /**/
-    // Connect this to some control?
-    //slider.setSlider(masterSlider);
-    /**/
-    slider.run(0);
-    /*
-    // Register slider
-    sliders.add(slider);
-    */
-  }
-  // makeSlider
-  
-  
-  public void makeZeroSlider(DAGTransform adagr)
-  // Creates keys and registers sliders to turn "adagr" on or off smoothly
-  // "Off" here refers to origin values (0,0,0, 0, 1,1,1)
-  {
-    // Create zero key
-    DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    // Create max key
-    PVector pos = adagr.getUsedPosition();
-    float r = adagr.getUsedRotation();
-    PVector scale = adagr.getUsedScale();
-    DAGTransform key2 = new DAGTransform(pos.x, pos.y, pos.z,  r,  scale.x, scale.y, scale.z);
-    // Make slider
-    makeSlider(adagr, key1, key2);
-  }
-  // makeZeroSlider
 }
 // Story
