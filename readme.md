@@ -1,8 +1,14 @@
-MDDN 442 Project 2
-Benjamin D. Richards
+MANTLE
+an interactive installation
+by Benjamin D. Richards
+www.benjamindrichards.com
 
-This is the final project for this paper.
+This is an interactive installation piece.
 
-It takes the form of an interactive fleet command simulation.
+It uses a webcam (or mouse) to control a starship in battle.
 
-The underlying technology incorporates normal-mapped sprites.
+This code is written for Processing 2.0, available free at www.processing.org.
+
+The main sketch file is FINAL/FINAL.pde. Open and run this.
+
+See the file "ABOUT.pdf" for more information about setup and operation.
