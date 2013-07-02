@@ -66,9 +66,11 @@ class RenderManager
     doBloom = false;
     bloomScale = 8;
     float bloomMapScale = ry / (720.0 * bloomScale);
-    bBloom = createGraphics( int(rx * bloomMapScale), int(ry * bloomMapScale), P2D );
-    bBloomHorizontal = createGraphics( int(rx * bloomMapScale), int(ry * bloomMapScale), P2D );
-    bBloomVertical = createGraphics( int(rx * bloomMapScale), int(ry * bloomMapScale), P2D );
+    int rBloomX = int( min(rx * bloomMapScale,  320.0) );
+    int rBloomY = int( min(ry * bloomMapScale,  180.0) );
+    bBloom = createGraphics( rBloomX, rBloomY, P2D );
+    bBloomHorizontal = createGraphics( rBloomX, rBloomY, P2D );
+    bBloomVertical = createGraphics( rBloomX, rBloomY, P2D );
     bBloomCache = createGraphics(rx, ry, P2D);
     println("BLOOM RESOLUTION [ " + bBloom.width + ", " + bBloom.height + " ]");
   }

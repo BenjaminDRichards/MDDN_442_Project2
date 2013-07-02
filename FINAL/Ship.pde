@@ -128,9 +128,9 @@ class Ship
     targetable = true;
     this.team = team;
     age = 0;
-    ageMax = 240;  // This is only used for missiles
-    turretRange = new PVector(-HALF_PI, HALF_PI, 30);
-    turretAcquisitionArc = 0.2;
+    ageMax = 240;  // This is only used for munitions
+    turretRange = new PVector(-PI / 3.0, PI / 3.0, 60);
+    turretAcquisitionArc = 0.5;
     reload = 0;
     reloadTime = 180;
     shooting = false;
@@ -391,12 +391,28 @@ class Ship
   {
     if(cloaked)  return;  // Everybody knows that cloaks draw power from the weapons array
     
+    // Set parent
+    // This shouldn't ever be null, but just in case...
+    DAGTransform parentDag = root;
+    if(root.getParent() != null)
+    {
+      parentDag = root.getParent();
+    }
+    
     // Select an enemy target within a certain arc
     ArrayList enemies = shipManager.getEnemiesOf(team);
-    PVector rpos = root.getWorldPosition();
-    float rang = root.getWorldRotation();
+    PVector rpos = parentDag.getWorldPosition();
+    float rang = parentDag.getWorldRotation();
+    
+    // Determine normalized facing
+    float rangN = rang % TWO_PI;
+    if(rangN < -PI)  rangN += TWO_PI;
+    if(PI < rangN)  rangN -= TWO_PI;
+    
+    // Placeholder for target
     Ship candidate = null;
-    float candidateDeviation = 0;
+    float candidateDeviation = 0.0;
+    float candidateWorldBearing = 0.0;
     
     Iterator i = enemies.iterator();
     while( i.hasNext() )
@@ -405,18 +421,17 @@ class Ship
       PVector enemyPos = enemy.getRoot().getWorldPosition();
       PVector vecToEnemy = PVector.sub(enemyPos, rpos);
       float angToEnemy = vecToEnemy.heading();
-      float angDiff = angToEnemy - rang;
-      //float rangeLow = turretRange.x + root.getLocalRotation();
-      //float rangeHigh = turretRange.y + root.getLocalRotation();
-      //if( turretRange.x < angToEnemy  &&  angToEnemy < turretRange.y  &&  vecToEnemy.mag() < turretRange.z )
-      //if( rangeLow < angToEnemy  &&  angToEnemy < rangeHigh  &&  vecToEnemy.mag() < turretRange.z )
-      if( vecToEnemy.mag() < turretRange.z )
+      float angDiff = angToEnemy - rangN;
+      if(angDiff < -PI)  angDiff += TWO_PI;
+      if(PI < angDiff)  angDiff -= TWO_PI;
+      if( turretRange.x < angDiff  &&  angDiff < turretRange.y  &&  vecToEnemy.mag() < turretRange.z )
       {
         // Valid target
         if( candidate == null  ||  abs(angDiff) < candidateDeviation )
         {
           candidate = enemy;
           candidateDeviation = abs(angDiff);
+          candidateWorldBearing = angToEnemy;
         }
       }
     }
@@ -424,18 +439,26 @@ class Ship
     {
       // Target that vessel
       target.snapTo( candidate.getRoot() );
+      
+      // Fire at valid targets
+      // Find the current heading
+      float worldAng = root.getWorldRotation();
+      float deviation = (candidateWorldBearing - worldAng) % TWO_PI;
+      if(abs(deviation) < turretAcquisitionArc  &&  candidate != null)
+      {
+        fireWeapon();
+      }
     }
     else
     {
       // Revert to original orientation
-      target.snapTo( root );
-      PVector reAim = PVector.fromAngle( root.getWorldRotation() - root.getLocalRotation() );
-      target.moveWorld(reAim.x, reAim.y);
-    }
-    // Fire at valid targets
-    if(candidateDeviation < turretAcquisitionArc  &&  candidate != null)
-    {
-      fireWeapon();
+      DAGTransform newTarget = root.getParent();
+      float newTargetAng = newTarget.getWorldRotation();
+      float newTargetOffset = 100.0;
+      target.snapTo( newTarget );
+      PVector targetOffset = new PVector( newTargetOffset * cos(newTargetAng),
+                                          newTargetOffset * sin(newTargetAng) );
+      target.moveWorld(targetOffset.x, targetOffset.y);
     }
   }
   // doNavTargetingTurret
@@ -655,6 +678,10 @@ class Ship
       switch(munitionType)
       {
         case MUNITION_BULLET_A:
+          // Set straight-ahead target
+          float rot = root.getWorldRotation();
+          targetPos = pos.get();
+          targetPos.add(radius * 16.0 * cos(rot), radius * 16.0 * sin(rot), 0.0);
           munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_BULLET_A, team);
           break;
         case MUNITION_MISSILE_A:
@@ -1377,7 +1404,7 @@ class Ship
     // TURRETS
     
     // Missile turret
-    DAGTransform mtHost = new DAGTransform(-5,5,0, -1, 1,1,1);
+    DAGTransform mtHost = new DAGTransform(-5,5,0, -HALF_PI, 1,1,1);    // Rotated to face forward
     mtHost.setParent(hull);
     // Config turret
     Ship missileTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
@@ -1388,7 +1415,7 @@ class Ship
     missileTurret.getRoot().setParent(mtHost);
     
     // Laser turret
-    DAGTransform ltHost = new DAGTransform(5,5,0, 1, 1,1,1);
+    DAGTransform ltHost = new DAGTransform(5,5,0, -HALF_PI, 1,1,1);    // Rotated to face forward
     ltHost.setParent(hull);
     // Config turret
     Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
@@ -1424,10 +1451,9 @@ class Ship
     navMode = NAV_MODE_TURRET;
     thrust = 0.0;
     drag = 0.0;
-    turnThrust = 0.04;
+    turnThrust = 0.001;
     turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
-    turretRange.set(turretRange.x, turretRange.y, 40);
     turretAcquisitionArc = 0.2;
     munitionType = MUNITION_MISSILE_A;
     
@@ -1453,12 +1479,11 @@ class Ship
     navMode = NAV_MODE_TURRET;
     thrust = 0.0;
     drag = 0.0;
-    turnThrust = 0.04;
+    turnThrust = 0.001;
     turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
     munitionType = MUNITION_BULLET_A;
     firingTimeMax = 10;
-    turretRange.set(turretRange.x, turretRange.y, 40);
     turretAcquisitionArc = 0.2;
     reloadTime = 10.0;
     
@@ -1598,6 +1623,7 @@ class Ship
     targetable = false;
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
+    ageMax = 90;
     wrap = false;
     colExplosion = color(255, 192, 127, 255);
     setupExplosionTemplatesB();

@@ -16,7 +16,7 @@ ShipManager sceneShipManager;
 Ship playerShip;
 int MIN_SHIP_COUNT = 8;
 
-PGraphics output;              // Used for accelerated draw on slower machines
+PGraphics output;              // Where the main drawing gets done
 PVector bufferRes;
 RenderManager renderManager;
 Hud hud;
@@ -93,21 +93,30 @@ PImage ship_preya_thrusterR_warp;
 void setup()
 {
   // Letterbox parameters
-  float resX = 16;
-  float resY = 9;
-  float idealRatio = resX / resY;
+  float resX = displayWidth;
+  float resY = displayHeight;
+  float idealRatio = 16.0 / 9.0;
   float screenRatio = displayWidth / (float)displayHeight;
-  if(screenRatio < idealRatio)    {  resX = resY * screenRatio;  }
-  else                            {  resY = resX / screenRatio;  }
-  // Resize buffer
-  resX *= displayWidth / resX;
-  resY *= displayHeight / resY;
+  if(screenRatio < idealRatio)
+  {
+    // That is, the screen is too tall
+    // Downres in Y
+    resY = displayWidth / idealRatio;
+  }
+  else if(idealRatio < screenRatio)
+  {
+    // That is, the screen is too wide
+    // Downres in X
+    resX = displayHeight * idealRatio;
+  }
   
   /*
   SET RESOLUTION
   */
   size(int(resX), int(resY), P2D);
   //size(640, 360, P2D);            // For diagnostics - currently, it doesn't run much faster
+  //size(2480, 1395, P2D);          // For renders - this fits horizontally on portrait A4 
+                                    //  - crazy high, doesn't run at all cooperatively
   frameRate(30);                    // Because it's plenty smooth at 30 and 15 is too low
   
   noCursor();
@@ -236,13 +245,12 @@ void setup()
   
   
   // Setup draw buffer
+  /*
   // Comply with screen aspect ratio
   float outputResX = displayWidth;
   float outputResY = displayHeight;
-  /*
-  float outputResX = 1920;
-  float outputResY = 1080;
-  */
+  //float outputResX = 1920;
+  //float outputResY = 1080;
   float expectedRatio = outputResX / outputResY;
   float actualRatio = width / (float)height;
   if(actualRatio < expectedRatio)    outputResX = outputResY * actualRatio;
@@ -254,6 +262,8 @@ void setup()
     outputResY = height;
   }
   bufferRes = new PVector(outputResX, outputResY);
+  */
+  bufferRes = new PVector(width, height);
   output = createGraphics( int(bufferRes.x), int(bufferRes.y), P2D);
   println("BUFFER RESOLUTION " + bufferRes);
   
@@ -300,10 +310,10 @@ void setup()
   // RGB test lights
   DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
   Light dirl = new Light(dirlDag, 0.6, color(255, 0, 0, 255));
-  dirl.makeDirectional( new PVector(-0.0, -1, -0.0) );
+  dirl.makeDirectional( new PVector(1.0, 0.0, -0.0) );
   sceneLights.add(dirl);
   dirl = new Light(dirlDag, 0.6, color(0, 255, 0, 255));
-  dirl.makeDirectional( new PVector(1, 0, -0.0) );
+  dirl.makeDirectional( new PVector(0.0, 1.0, -0.0) );
   sceneLights.add(dirl);
   dirl = new Light(dirlDag, 0.6, color(0, 0, 255, 255));
   dirl.makeDirectional( new PVector(0, 0, 1.0) );
@@ -418,7 +428,7 @@ void draw()
   //image(output, 0,0, width, height);
   // Motion blur version
   pushStyle();
-  tint(255, 64 * story.tick);
+  tint(255, 127);
   image(output, 0,0, width, height);
   popStyle();
   

@@ -54,21 +54,19 @@ void main() {
 		vec4 lightVec = texture2D(texture, vertTexCoord.xy) * normalScalar + normalAdder;
 		float lightIntensity = lightVec.a * lightBrightness;
 		
+		// Do not rotate lights without better mapCoord mathematics
+		/*
 		// Counter-rotate light vector
 		float x = lightVec.x;
 		float y = lightVec.y;
 		
-		/*
-		float ang = -worldAngle;
-		x = x * ( cos(ang) - sin(ang) );
-		y = y * ( sin(ang) + cos(ang) );
-		*/
 		float derivedAngle = atan(y, x) - worldAngle;
 		float d = length( vec2(x, y) );
 		x = cos(derivedAngle) * d;
 		y = sin(derivedAngle) * d;
 	
 		lightVec = vec4(x, y, lightVec.z, lightVec.a);
+		*/
 		
 		// Derive diffuse lighting
 		float diffValue = max( dot( lightVec.xyz, surfaceVec.xyz ),  0.0 ) * lightIntensity;
@@ -81,9 +79,7 @@ void main() {
 		float specular = pow(eyeDot, lightSpecularPower) * specularStrength * lightIntensity;
 		
 		// Composit color
-		float value = diffValue + specular;
-		vec4 outCol = vec4(value, value, value, value) * lightColor;
-		gl_FragColor = outCol;
+		gl_FragColor = vec4(diffValue + specular) * lightColor;
 		// Note that, for this to display correctly, the blendFunc must be ONE, ONE
 	}
 }

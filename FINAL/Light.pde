@@ -70,7 +70,7 @@ class Light
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
     shader.set("lightBrightness", scaledBrightness);
-    shader.set("worldAngle", transform.getWorldRotation() );
+    //shader.set("worldAngle", transform.getWorldRotation() );
     shader.set("normalMap", normalBuffer);
     shader.set("lightSpecularMap", specularBuffer);
     
@@ -113,7 +113,7 @@ class Light
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
     shader.set("lightBrightness", scaledBrightness);
-    shader.set("worldAngle", 0.0 );
+    //shader.set("worldAngle", 0.0 );
     shader.set("normalMap", normalBuffer);
     shader.set("lightSpecularMap", specularBuffer);
     
