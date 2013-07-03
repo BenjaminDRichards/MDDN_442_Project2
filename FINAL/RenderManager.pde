@@ -104,7 +104,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bDiffuse.pushStyle();
-      bDiffuse.tint(s.tintDiff);
+      bDiffuse.tint( s.getDiffuseTint() );
       drawImage( bDiffuse, s.getDiffuse(), pos, ang, scaleFactor, res, offset );
       bDiffuse.popStyle();
     }
@@ -133,7 +133,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bSpecular.pushStyle();
-      bSpecular.tint(s.tintSpec);
+      bSpecular.tint( s.getSpecularTint() );
       drawImage( bSpecular, s.getSpecular(), pos, ang, scaleFactor, res, offset );
       bSpecular.popStyle();
     }
@@ -162,7 +162,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bEmissive.pushStyle();
-      bEmissive.tint(s.tintEmit);
+      bEmissive.tint( s.getEmissiveTint() );
       drawImage( bEmissive, s.getEmissive(), pos, ang, scaleFactor, res, offset );
       bEmissive.popStyle();
     }
@@ -191,7 +191,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bNormal.pushStyle();
-      bNormal.tint(s.tintNorm);
+      bNormal.tint( s.getNormalTint() );
       // SET SHADER
       bNormal.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);
@@ -228,7 +228,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bWarp.pushStyle();
-      //bWarp.tint(s.tintWarp);
+      //bWarp.tint( s.getWarpTint() );
       bWarp.tint(255, alpha(s.tintWarp) );
       // SET SHADER
       bWarp.shader(shaderNorm);

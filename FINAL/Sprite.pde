@@ -3,8 +3,8 @@ class Sprite
 {
   DAGTransform transform;
   PImage imgDiff, imgNorm, imgSpec, imgEmit, imgWarp;
-  //float alphaDiff, alphaNorm, alphaSpec, alphaEmit, alphaWarp;
   color tintDiff, tintNorm, tintSpec, tintEmit, tintWarp;
+  color masterTintDiff, masterTintNorm, masterTintSpec, masterTintEmit, masterTintWarp;
   float coverageX, coverageY, centerX, centerY;
   
   
@@ -17,18 +17,17 @@ class Sprite
     this.centerX = centerX;
     this.centerY = centerY;
     
-    /*
-    alphaDiff = 1.0;
-    alphaNorm = 1.0;
-    alphaSpec = 1.0;
-    alphaEmit = 1.0;
-    alphaWarp = 0.0;
-    */
     tintDiff = color(255,255);
     tintNorm = color(255,255);
     tintSpec = color(255,255);
     tintEmit = color(255,255);
     tintWarp = color(255,255);
+    
+    masterTintDiff = color(255,255);
+    masterTintNorm = color(255,255);
+    masterTintSpec = color(255,255);
+    masterTintEmit = color(255,255);
+    masterTintWarp = color(255,255);
   }
   
   
@@ -62,5 +61,20 @@ class Sprite
   public PImage getSpecular()  {  return( imgSpec );  }
   public PImage getEmissive()  {  return( imgEmit );  }
   public PImage getWarp()  {  return( imgWarp );  }
+  
+  public color getDiffuseTint()  {  return( multColors( tintDiff, masterTintDiff ) );  }
+  public color getNormalTint()  {  return( multColors( tintNorm, masterTintNorm ) );  }
+  public color getSpecularTint()  {  return( multColors( tintSpec, masterTintSpec ) );  }
+  public color getEmissiveTint()  {  return( multColors( tintEmit, masterTintEmit ) );  }
+  public color getWarpTint()  {  return( multColors( tintWarp, masterTintWarp ) );  }
+  
+  private color multColors(color col1, color col2)
+  {
+    color c = color( red(col1) * red(col2) / 255.0,
+                     green(col1) * green(col2) / 255.0,
+                     blue(col1) * blue(col2) / 255.0,
+                     alpha(col1) * alpha(col2) / 255.0 );
+    return( c );
+  }
 }
 // Sprite

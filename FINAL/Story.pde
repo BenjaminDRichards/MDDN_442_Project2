@@ -94,6 +94,7 @@ Includes time management.
       lastTickCount = thisTickCount;
       thisTickCount = millis() * idealFrameRate / 1000.0;
       tick = thisTickCount - lastTickCount;
+      tick = min(tick, 4.0);    // Stop time skips
     }
     else if(timeMode == 1)
     {
@@ -106,7 +107,11 @@ Includes time management.
     // Track time spent running
     tickTotal += tick;
     // Give it some time to settle down
-    if(frameCount < 4)  tickTotal = frameCount + START_OFFSET;
+    if(frameCount < 4)
+    {
+      tickTotal = frameCount + START_OFFSET;
+      lastTickCount = thisTickCount - 1.0;
+    }
   }
   // manageTime
   

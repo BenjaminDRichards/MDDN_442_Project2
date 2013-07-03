@@ -119,9 +119,10 @@ class Ship
     dismemberTimer = 0;
     dismemberTimerInterval = 10;
     colExplosion = color(127, 255, 192, 255);
-    explosionParticles = 128;
+    explosionParticles = 64;
     explosionTemplates = new ArrayList();
-    setupExplosionTemplatesA();
+    //setupExplosionTemplatesA();
+    setupExplosionTemplatesPyrotechnic( color(127, 255, 192, 255) );
     
     // Military data
     invulnerable = false;
@@ -307,11 +308,11 @@ class Ship
     }
     
     // Apply navigational physics
-    rateTurn = constrain(rateTurn, -maxTurn * tick, maxTurn * tick) * pow(turnDrag, tick);
-    root.rotate(rateTurn);
-    rateVel = constrain(rateVel, -maxVel * tick, maxVel * tick) * pow(drag, tick);
+    rateTurn = constrain(rateTurn, -maxTurn, maxTurn) * pow(turnDrag, tick);
+    root.rotate(rateTurn * tick);
+    rateVel = constrain(rateVel, -maxVel, maxVel) * pow(drag, tick);
     PVector thrustVector = PVector.fromAngle( root.getWorldRotation() );
-    thrustVector.mult(rateVel);
+    thrustVector.mult(rateVel * tick);
     root.moveLocal(thrustVector.x, thrustVector.y, thrustVector.z);
     
     // Wrap around activity area
@@ -969,6 +970,8 @@ class Ship
     
     // THRUSTERS
     
+    float thrusterMaxDepression = PI / 6.0;
+    
     // Create left turn panel
     DAGTransform thrusterArmLdag = new DAGTransform(0, -6.5, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
     thrusterArmLdag.setParent(prowDag);
@@ -979,7 +982,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterArmLdag.useR = true;
     DAGTransform leftThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -QUARTER_PI * 0.25, 1,1,1);
+    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator leftThruster_anim = thrusterArmLdag.makeSlider(leftThruster_key1, leftThruster_key2);
     // Register slider to internal controllers
     animTurnRight.add(leftThruster_anim);
@@ -995,7 +998,7 @@ class Ship
     // Set sliders for right turn panel
     thrusterArmRdag.useR = true;
     DAGTransform rightThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, QUARTER_PI * 0.25, 1,1,1);
+    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, thrusterMaxDepression, 1,1,1);
     Animator rightThruster_anim = thrusterArmRdag.makeSlider(rightThruster_key1, rightThruster_key2);
     // Register slider to internal controllers
     animTurnLeft.add(rightThruster_anim);
@@ -1011,7 +1014,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterLdag.useR = true;
     DAGTransform thrusterLdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform thrusterLdag_key2 = new DAGTransform(0,0,0, QUARTER_PI * 0.5, 1,1,1);
+    DAGTransform thrusterLdag_key2 = new DAGTransform(0,0,0, thrusterMaxDepression, 1,1,1);
     Animator thrusterLdag_anim = thrusterLdag.makeSlider(thrusterLdag_key1, thrusterLdag_key2);
     // Register slider to internal controllers
     animTurnRight.add(thrusterLdag_anim);
@@ -1039,7 +1042,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterRdag.useR = true;
     DAGTransform thrusterRdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -QUARTER_PI * 0.5, 1,1,1);
+    DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator thrusterRdag_anim = thrusterRdag.makeSlider(thrusterRdag_key1, thrusterRdag_key2);
     // Register slider to internal controllers
     animTurnRight.add(thrusterRdag_anim);
@@ -1055,7 +1058,71 @@ class Ship
     DAGTransform thrusterRLightDag_key1 = new DAGTransform(0,0,0, 0, 0,1,1);
     DAGTransform thrusterRLightDag_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
     Animator thrusterRLightDag_anim = thrusterRLightDag.makeSlider(thrusterRLightDag_key1, thrusterRLightDag_key2);
-    animTurnRight.add(thrusterRLightDag_anim);
+    animTurnLeft.add(thrusterRLightDag_anim);
+    
+    // Front maneuver jets
+    
+    // Left jet
+    DAGTransform jetLDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
+    jetLDag.snapTo(thrusterLdag);
+    jetLDag.setParent(thrusterLdag);
+    jetLDag.rotate( -HALF_PI );  // Because of snapping
+    jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetLS = new Sprite(jetLDag, null, 5,5, -0.5,-1.0);
+    jetLS.setEmissive(fx_jet);
+    jetLS.masterTintEmit = colDrive;
+    // Set animators
+    DAGTransform jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator jetLDag_anim = jetLDag.makeSlider( jet_key1, jet_key2 );
+    animTurnRight.add( jetLDag_anim );
+    
+    // Right jet
+    DAGTransform jetRDag = new DAGTransform(0.0, 0.0, 0.0,  HALF_PI,  1,1,1);
+    jetRDag.snapTo(thrusterRdag);
+    jetRDag.setParent(thrusterRdag);
+    jetRDag.rotate( HALF_PI );  // Because of snapping
+    jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetRS = new Sprite(jetRDag, null, 5,5, -0.5,-1.0);
+    jetRS.setEmissive(fx_jet);
+    jetRS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetRDag_anim = jetRDag.makeSlider( jet_key1, jet_key2 );
+    animTurnLeft.add( jetRDag_anim );
+    
+    // Rear maneuver jets
+    
+    // Left jet
+    DAGTransform jetLBackDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
+    jetLBackDag.snapTo(driveDag);
+    jetLBackDag.setParent(driveDag);
+    jetLBackDag.rotate( -HALF_PI * 1.5 );  // Because of snapping
+    jetLBackDag.moveWorld(-1.0, 1.0);
+    jetLBackDag.useSX = true;  jetLBackDag.useSY = true;  jetLBackDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetLBackS = new Sprite(jetLBackDag, null, 5,5, -0.5,-1.0);
+    jetLBackS.setEmissive(fx_jet);
+    jetLBackS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetLBackDag_anim = jetLBackDag.makeSlider( jet_key1, jet_key2 );
+    animTurnLeft.add( jetLBackDag_anim );
+    
+    // Right jet
+    DAGTransform jetRBackDag = new DAGTransform(0.0, 0.0, 0.0,  HALF_PI,  1,1,1);
+    jetRBackDag.snapTo(driveDag);
+    jetRBackDag.setParent(driveDag);
+    jetRBackDag.rotate( HALF_PI * 1.5 );  // Because of snapping
+    jetRBackDag.moveWorld(1.0, 1.0);
+    jetRBackDag.useSX = true;  jetRBackDag.useSY = true;  jetRBackDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetRBackS = new Sprite(jetRBackDag, null, 5,5, -0.5,-1.0);
+    jetRBackS.setEmissive(fx_jet);
+    jetRBackS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetRBackDag_anim = jetRBackDag.makeSlider( jet_key1, jet_key2 );
+    animTurnRight.add( jetRBackDag_anim );
     
     
     // MOTORS
@@ -1187,6 +1254,10 @@ class Ship
     sprites.add( motor3LS );
     sprites.add( motor3RS );
     sprites.add( driveS );
+    sprites.add( jetLS );
+    sprites.add( jetRS );
+    sprites.add( jetLBackS );
+    sprites.add( jetRBackS );
     sprites.add( thrusterL );
     sprites.add( thrusterR );
     sprites.add( thrusterArmL );
@@ -1308,6 +1379,8 @@ class Ship
     
     // THRUSTERS
     
+    float thrusterMaxDepression = PI / 6.0;
+    
     // Create left turn panel
     DAGTransform thrusterArmLdag = new DAGTransform(0, -8.5, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
     thrusterArmLdag.setParent(prowDag);
@@ -1319,7 +1392,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterArmLdag.useR = true;
     DAGTransform leftThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -QUARTER_PI * 0.25, 1,1,1);
+    DAGTransform leftThruster_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator leftThruster_anim = thrusterArmLdag.makeSlider(leftThruster_key1, leftThruster_key2);
     // Register slider to internal controllers
     animTurnRight.add(leftThruster_anim);
@@ -1336,7 +1409,7 @@ class Ship
     // Set sliders for right turn panel
     thrusterArmRdag.useR = true;
     DAGTransform rightThruster_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, QUARTER_PI * 0.25, 1,1,1);
+    DAGTransform rightThruster_key2 = new DAGTransform(0,0,0, thrusterMaxDepression, 1,1,1);
     Animator rightThruster_anim = thrusterArmRdag.makeSlider(rightThruster_key1, rightThruster_key2);
     // Register slider to internal controllers
     animTurnLeft.add(rightThruster_anim);
@@ -1353,7 +1426,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterLdag.useR = true;
     DAGTransform thrusterLdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform thrusterLdag_key2 = new DAGTransform(0,0,0, QUARTER_PI * 0.5, 1,1,1);
+    DAGTransform thrusterLdag_key2 = new DAGTransform(0,0,0, thrusterMaxDepression, 1,1,1);
     Animator thrusterLdag_anim = thrusterLdag.makeSlider(thrusterLdag_key1, thrusterLdag_key2);
     // Register slider to internal controllers
     animTurnRight.add(thrusterLdag_anim);
@@ -1382,7 +1455,7 @@ class Ship
     // Set sliders for left turn panel
     thrusterRdag.useR = true;
     DAGTransform thrusterRdag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
-    DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -QUARTER_PI * 0.5, 1,1,1);
+    DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator thrusterRdag_anim = thrusterRdag.makeSlider(thrusterRdag_key1, thrusterRdag_key2);
     // Register slider to internal controllers
     animTurnRight.add(thrusterRdag_anim);
@@ -1398,7 +1471,71 @@ class Ship
     DAGTransform thrusterRLightDag_key1 = new DAGTransform(0,0,0, 0, 0,1,1);
     DAGTransform thrusterRLightDag_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
     Animator thrusterRLightDag_anim = thrusterRLightDag.makeSlider(thrusterRLightDag_key1, thrusterRLightDag_key2);
-    animTurnRight.add(thrusterRLightDag_anim);
+    animTurnLeft.add(thrusterRLightDag_anim);
+    
+    // Front maneuver jets
+    
+    // Left jet
+    DAGTransform jetLDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
+    jetLDag.snapTo(thrusterLdag);
+    jetLDag.setParent(thrusterLdag);
+    jetLDag.rotate( -HALF_PI );  // Because of snapping
+    jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetLS = new Sprite(jetLDag, null, 5,5, -0.5,-1.0);
+    jetLS.setEmissive(fx_jet);
+    jetLS.masterTintEmit = colDrive;
+    // Set animators
+    DAGTransform jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator jetLDag_anim = jetLDag.makeSlider( jet_key1, jet_key2 );
+    animTurnRight.add( jetLDag_anim );
+    
+    // Right jet
+    DAGTransform jetRDag = new DAGTransform(0.0, 0.0, 0.0,  HALF_PI,  1,1,1);
+    jetRDag.snapTo(thrusterRdag);
+    jetRDag.setParent(thrusterRdag);
+    jetRDag.rotate( HALF_PI );  // Because of snapping
+    jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetRS = new Sprite(jetRDag, null, 5,5, -0.5,-1.0);
+    jetRS.setEmissive(fx_jet);
+    jetRS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetRDag_anim = jetRDag.makeSlider( jet_key1, jet_key2 );
+    animTurnLeft.add( jetRDag_anim );
+    
+    // Rear maneuver jets
+    
+    // Left jet
+    DAGTransform jetLBackDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
+    jetLBackDag.snapTo(driveDag);
+    jetLBackDag.setParent(driveDag);
+    jetLBackDag.rotate( -HALF_PI * 1.5 );  // Because of snapping
+    jetLBackDag.moveWorld(-2.0, 2.0);
+    jetLBackDag.useSX = true;  jetLBackDag.useSY = true;  jetLBackDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetLBackS = new Sprite(jetLBackDag, null, 5,5, -0.5,-1.0);
+    jetLBackS.setEmissive(fx_jet);
+    jetLBackS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetLBackDag_anim = jetLBackDag.makeSlider( jet_key1, jet_key2 );
+    animTurnLeft.add( jetLBackDag_anim );
+    
+    // Right jet
+    DAGTransform jetRBackDag = new DAGTransform(0.0, 0.0, 0.0,  HALF_PI,  1,1,1);
+    jetRBackDag.snapTo(driveDag);
+    jetRBackDag.setParent(driveDag);
+    jetRBackDag.rotate( HALF_PI * 1.5 );  // Because of snapping
+    jetRBackDag.moveWorld(2.0, 2.0);
+    jetRBackDag.useSX = true;  jetRBackDag.useSY = true;  jetRBackDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetRBackS = new Sprite(jetRBackDag, null, 5,5, -0.5,-1.0);
+    jetRBackS.setEmissive(fx_jet);
+    jetRBackS.masterTintEmit = colDrive;
+    // Set animators
+    Animator jetRBackDag_anim = jetRBackDag.makeSlider( jet_key1, jet_key2 );
+    animTurnRight.add( jetRBackDag_anim );
     
     
     // TURRETS
@@ -1436,6 +1573,10 @@ class Ship
     sprites.add( driveS );
     sprites.add( thrusterL );
     sprites.add( thrusterR );
+    sprites.add( jetLS );
+    sprites.add( jetRS );
+    sprites.add( jetLBackS );
+    sprites.add( jetRBackS );
     sprites.add( thrusterArmL );
     sprites.add( thrusterArmR );
     sprites.add( bridgeS );
@@ -1454,8 +1595,10 @@ class Ship
     turnThrust = 0.001;
     turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
-    turretAcquisitionArc = 0.2;
     munitionType = MUNITION_MISSILE_A;
+    firingTimeMax = 20;
+    reloadTime = 20;
+    turretAcquisitionArc = 0.2;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1484,8 +1627,8 @@ class Ship
     wrap = false;  // Parent vehicle should handle this
     munitionType = MUNITION_BULLET_A;
     firingTimeMax = 10;
+    reloadTime = 50.0;
     turretAcquisitionArc = 0.2;
-    reloadTime = 10.0;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1509,8 +1652,8 @@ class Ship
     navMode = NAV_MODE_HOMING;
     maxVel = 0.6;
     maxTurn = 0.06;
-    turnThrust = 0.002;
-    turnDrag = 0.9;
+    turnThrust = 0.003;
+    turnDrag = 0.95;
     thrust = 0.02;
     radius = 3.0;
     destinationRadius = 1.0;
@@ -1518,7 +1661,11 @@ class Ship
     dismemberTimerInterval = 1.0;
     wrap = false;
     colExplosion = color(255, 192, 127, 255);
-    setupExplosionTemplatesB();
+    
+    // Setup explosion templates
+    explosionTemplates.clear();
+    setupExplosionTemplatesPyrotechnic(colExplosion);
+    explosionParticles = 128;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1528,11 +1675,41 @@ class Ship
     hullS.setNormal(ship_preya_prow_norm);
     sprites.add(hullS);
     
+    // Maneuver jets
+    
+    // Left jet
+    DAGTransform jetLDag = new DAGTransform(0.0, -1.0, 0.0,  -PI / 3.0,  1,1,1);
+    jetLDag.setParent(hull);
+    jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetLS = new Sprite(jetLDag, null, 3,3, -0.5,-1.0);
+    jetLS.setEmissive(fx_jet);
+    jetLS.masterTintEmit = colExplosion;
+    sprites.add(jetLS);
+    // Set animators
+    DAGTransform jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator jetLDag_anim = jetLDag.makeSlider( jet_key1, jet_key2 );
+    animTurnRight.add( jetLDag_anim );
+    
+    // Right jet
+    DAGTransform jetRDag = new DAGTransform(0.0, -1.0, 0.0,  PI / 3.0,  1,1,1);
+    jetRDag.setParent(hull);
+    jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
+    /* Setup some graphics */
+    Sprite jetRS = new Sprite(jetRDag, null, 3,3, -0.5,-1.0);
+    jetRS.setEmissive(fx_jet);
+    jetRS.masterTintEmit = colExplosion;
+    sprites.add(jetRS);
+    // Set animators
+    Animator jetRDag_anim = jetRDag.makeSlider( jet_key1, jet_key2 );
+    animTurnLeft.add( jetRDag_anim );
+    
     // Exhaust emitter
     {
       DAGTransform em1Host = new DAGTransform(0, 0.8, 0,  0,  1,1,1);
       em1Host.setParent(hull);
-      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 2.0);
+      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 16.0);
       emitters.add(em1);
       
       // Drive light 1
@@ -1543,28 +1720,31 @@ class Ship
       
       DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
       Sprite s = new Sprite(dag, null, 0.5, 0.5, -0.5, -0.5);
+      s.setEmissive( fx_streak );
+      s.masterTintEmit = colExplosion;
       PVector vel = new PVector(0.2, 0, 0);
       float spin = 0;
-      float ageMax = 30;
+      float ageMax = 15;
       Particle p = new Particle(dag, s, vel, spin, ageMax);
       p.streak = true;
       p.aimAlongMotion = true;
       p.disperse = false;
-      p.sprite.setEmissive( fx_streakPC );
-      for(int i = 0;  i < 4;  i++)
+      //for(int i = 0;  i < 2;  i++)
         em1.addTemplate(p);
       
       // Puffs
-      PVector puffVel = new PVector(0.04, 0, 0);
-      float puffSpin = 0.04;
-      float puffDisperseSize = 4.0;
-      float puffAgeMax = 15;
+      PVector puffVel = new PVector(0.08, 0, 0);
+      float puffSpin = 0.16;
+      float puffDisperseSize = 2.0;
+      float puffAgeMax = 30;
       PVector pr = new PVector(0.5, 0.5);
+      color puffTint = color(colExplosion, 64);
       
       // Puff 1
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
       s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
-      s.setEmissive(fx_puff1pc);
+      s.setEmissive(fx_puff1);
+      s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
       em1.addTemplate(p);
@@ -1572,7 +1752,8 @@ class Ship
       // Puff 2
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
       s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
-      s.setEmissive(fx_puff2pc);
+      s.setEmissive(fx_puff2);
+      s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
       em1.addTemplate(p);
@@ -1580,7 +1761,8 @@ class Ship
       // Puff 3
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
       s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
-      s.setEmissive(fx_puff3pc);
+      s.setEmissive(fx_puff3);
+      s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
       em1.addTemplate(p);
@@ -1589,13 +1771,14 @@ class Ship
       // Spatters
       PVector spatVel = new PVector(0, 0, 0);
       float spatSpin = 0.01;
-      float spatDisperseSize = 8.0;
+      float spatDisperseSize = 4.0;
       float spatAgeMax = 30;
       
       // Spatter
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
       s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
-      s.setEmissive(fx_spatterPc);
+      s.setEmissive(fx_spatter);
+      s.masterTintEmit = puffTint;
       p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
       p.disperseSize = spatDisperseSize;
       em1.addTemplate(p);
@@ -1612,7 +1795,7 @@ class Ship
   {
     // Set bullet behaviour
     navMode = NAV_MODE_BULLET;
-    maxVel = 2.0;
+    maxVel = 1.0;
     maxTurn = 0.0;
     thrust = 0;
     turnThrust = 0;
@@ -1626,22 +1809,29 @@ class Ship
     ageMax = 90;
     wrap = false;
     colExplosion = color(255, 192, 127, 255);
-    setupExplosionTemplatesB();
+    
+    // Setup explosion templates
+    explosionTemplates.clear();
+    setupExplosionTemplatesPyrotechnic(colExplosion);
+    explosionParticles = 128;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
     // Core beam
-    Sprite bulletMain = new Sprite(hull, null, 0.75, 3, -0.5,-0.5);
-    bulletMain.setEmissive(fx_streakPC);
+    Sprite bulletMain = new Sprite(hull, null, 0.75, 3.0, -0.5,-0.5);
+    bulletMain.setEmissive(fx_streak);
+    bulletMain.masterTintEmit = colExplosion;
     sprites.add(bulletMain);
+    // Highlight
+    Sprite bulletHighlight = new Sprite(hull, null, 0.5, 3.0, -0.5,-0.5);
+    bulletHighlight.setEmissive(fx_streak);
+    bulletHighlight.masterTintEmit = color(255,255,192);
+    sprites.add(bulletHighlight);
     
     // Core light
     Light bulletGlow = new Light(hull, 0.8, colExplosion);
     lights.add(bulletGlow);
-    
-    // Make it spit sparkles
-    /* */
     
     // Finalise
     boltToRoot(hull);
@@ -1673,14 +1863,15 @@ class Ship
   // snapToFaceTarget
   
   
-  public void setupExplosionTemplatesA()
-  // Makes the default cool explosion pieces
+  private void setupExplosionTemplatesPyrotechnic(color tintCol)
   {
-    explosionTemplates.clear();
+    // Does NOT clear the templates - this can be combined with other template queues.
     
     // Streak particle
     DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
     Sprite s = new Sprite(dag, null, 0.35, 0.35, -0.5, -0.5);
+    s.setEmissive(fx_streak);
+    s.masterTintEmit = tintCol;
     PVector vel = new PVector(1.2, 0, 0);
     float spin = 0;
     float ageMax = 30;
@@ -1688,28 +1879,29 @@ class Ship
     p.streak = true;
     p.aimAlongMotion = true;
     p.disperse = false;
-    p.sprite.setEmissive(fx_streak);
-    for(int i = 0;  i < 16;  i++)
+    for(int i = 0;  i < 8;  i++)
     {
       explosionTemplates.add(p);  // Do it several times to get statistical prevalence
     }
     
     // Rays
     PVector rayVel = new PVector(0,0,0);
-    float raySpin = 0.02;
-    float rayAgeMax = 30;
+    float raySpin = 0.01;
+    float rayAgeMax = 20;
     
     // Ray flare 1
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s = new Sprite(dag, null, 8,8, -0.5,-0.5);
     s.setEmissive(fx_ray1);
+    s.masterTintEmit = tintCol;
     p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
     explosionTemplates.add(p);
     
     // Ray flare 2
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
+    s = new Sprite(dag, null, 8,8, -0.5,-0.5);
     s.setEmissive(fx_ray2);
+    s.masterTintEmit = tintCol;
     p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
     explosionTemplates.add(p);
     
@@ -1723,6 +1915,7 @@ class Ship
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
     s = new Sprite(dag, null, 1,1, -0.5,-0.5);
     s.setEmissive(fx_puff1);
+    s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
     explosionTemplates.add(p);
     
@@ -1730,6 +1923,7 @@ class Ship
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
     s = new Sprite(dag, null, 1,1, -0.5,-0.5);
     s.setEmissive(fx_puff2);
+    s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
     explosionTemplates.add(p);
     
@@ -1737,121 +1931,34 @@ class Ship
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
     s = new Sprite(dag, null, 1,1, -0.5,-0.5);
     s.setEmissive(fx_puff3);
+    s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
     explosionTemplates.add(p);
     
     
     // Spatters
     PVector spatVel = new PVector(0.2, 0, 0);
-    float spatSpin = 0.01;
-    float spatAgeMax = 45;
+    float spatSpin = 0.0;
+    float spatAgeMax = 30;
     
     // Spatter
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
+    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
     s.setEmissive(fx_spatter);
+    s.masterTintEmit = color(tintCol, 127);
     p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
     explosionTemplates.add(p);
     
     // Spatter black
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setDiffuse(fx_spatterBlack);  // A diffuse effect!
+    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s.setEmissive(fx_spatter);
+    s.masterTintEmit = color(0, 255);
     p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
-    explosionTemplates.add(p);
-    
+    for(int i = 0;  i < 4;  i++)
+      explosionTemplates.add(p);
   }
-  // setupExplosionTemplatesA
-  
-  
-  public void setupExplosionTemplatesB()
-  // Player team explosions: warmer hues for missiles and plasma bolts
-  {
-    explosionTemplates.clear();
-    
-    // Streak particle
-    DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    Sprite s = new Sprite(dag, null, 0.35, 0.35, -0.5, -0.5);
-    PVector vel = new PVector(1.2, 0, 0);
-    float spin = 0;
-    float ageMax = 30;
-    Particle p = new Particle(dag, s, vel, spin, ageMax);
-    p.streak = true;
-    p.aimAlongMotion = true;
-    p.disperse = false;
-    p.sprite.setEmissive( fx_streakPC );
-    for(int i = 0;  i < 16;  i++)
-    {
-      explosionTemplates.add(p);  // Do it several times to get statistical prevalence
-    }
-    
-    // Rays
-    PVector rayVel = new PVector(0,0,0);
-    float raySpin = 0.02;
-    float rayAgeMax = 30;
-    
-    // Ray flare 1
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
-    s.setEmissive(fx_ray1pc);
-    p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
-    explosionTemplates.add(p);
-    
-    // Ray flare 2
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 4,4, -0.5,-0.5);
-    s.setEmissive(fx_ray2pc);
-    p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
-    explosionTemplates.add(p);
-    
-    
-    // Puffs
-    PVector puffVel = new PVector(0.6, 0, 0);
-    float puffSpin = 0.04;
-    float puffAgeMax = 30;
-    
-    // Puff 1
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setEmissive(fx_puff1pc);
-    p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
-    explosionTemplates.add(p);
-    
-    // Puff 2
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setEmissive(fx_puff2pc);
-    p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
-    explosionTemplates.add(p);
-    
-    // Puff 3
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setEmissive(fx_puff3pc);
-    p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
-    explosionTemplates.add(p);
-    
-    
-    // Spatters
-    PVector spatVel = new PVector(0.2, 0, 0);
-    float spatSpin = 0.01;
-    float spatAgeMax = 45;
-    
-    // Spatter
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setEmissive(fx_spatterPc);
-    p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
-    explosionTemplates.add(p);
-    
-    // Spatter black
-    dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 2,2, -0.5,-0.5);
-    s.setDiffuse(fx_spatterBlack);  // A diffuse effect!
-    p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
-    explosionTemplates.add(p);
-  }
-  // setupExplosionTemplatesB
+  // setupExplosionTemplatesPyrotechnic
   
   
   public DAGTransform getRoot()

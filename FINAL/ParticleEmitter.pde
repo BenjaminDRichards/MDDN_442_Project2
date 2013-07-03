@@ -47,18 +47,18 @@ class ParticleEmitter
     // Sprite
     Sprite sprite = new Sprite(dag, null, template.sprite.coverageX, template.sprite.coverageY,
       template.sprite.centerX, template.sprite.centerY);
-    /*
-    sprite.alphaDiff = template.sprite.alphaDiff;
-    sprite.alphaNorm = template.sprite.alphaNorm;
-    sprite.alphaSpec = template.sprite.alphaSpec;
-    sprite.alphaEmit = template.sprite.alphaEmit;
-    sprite.alphaWarp = template.sprite.alphaWarp;
-    */
+    // Tints
     sprite.tintDiff = template.sprite.tintDiff;
     sprite.tintNorm = template.sprite.tintNorm;
     sprite.tintSpec = template.sprite.tintSpec;
     sprite.tintEmit = template.sprite.tintEmit;
     sprite.tintWarp = template.sprite.tintWarp;
+    // Master Tints
+    sprite.masterTintDiff = template.sprite.masterTintDiff;
+    sprite.masterTintNorm = template.sprite.masterTintNorm;
+    sprite.masterTintSpec = template.sprite.masterTintSpec;
+    sprite.masterTintEmit = template.sprite.masterTintEmit;
+    sprite.masterTintWarp = template.sprite.masterTintWarp;
     // Sprite images
     sprite.setDiffuse( template.sprite.getDiffuse() );
     sprite.setNormal( template.sprite.getNormal() );

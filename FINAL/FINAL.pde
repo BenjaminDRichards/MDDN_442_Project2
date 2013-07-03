@@ -36,10 +36,10 @@ PGraphics testShipSprite;
 PGraphics tex_flatWhite, tex_flatBlack, tex_flatNorm, tex_flatNull;
 PImage tex_backdrop, tex_warpBackdrop;
 
-PImage fx_shockwave, fx_ray1, fx_ray2, fx_ray1pc, fx_ray2pc;
-PImage fx_puff1, fx_puff2, fx_puff3, fx_puff1pc, fx_puff2pc, fx_puff3pc;
-PImage fx_spatter, fx_spatterPc, fx_spatterBlack;
-PImage fx_streak, fx_streakPC;
+PImage fx_shockwave, fx_spatter, fx_streak;
+PImage fx_ray1, fx_ray2;
+PImage fx_puff1, fx_puff2, fx_puff3;
+PImage fx_jet;
 PImage fx_wrinkle8, fx_wrinkle64, fx_wrinkle256;
 
 PImage hud_reticule;
@@ -169,21 +169,14 @@ void setup()
   tex_warpBackdrop = loadImage("images/windowGlass5.png");
   
   fx_shockwave = loadImage("images/effects/shockwave2.png");
+  fx_spatter = loadImage("images/effects/spatter2.png");
+  fx_streak = loadImage("images/effects/streak.png");
   fx_ray1 = loadImage("images/effects/ray1.png");
   fx_ray2 = loadImage("images/effects/ray2.png");
-  fx_ray1pc = loadImage("images/effects/ray1pc.png");
-  fx_ray2pc = loadImage("images/effects/ray2pc.png");
   fx_puff1 = loadImage("images/effects/puff1.png");
   fx_puff2 = loadImage("images/effects/puff2.png");
   fx_puff3 = loadImage("images/effects/puff3.png");
-  fx_puff1pc = loadImage("images/effects/puff1pc.png");
-  fx_puff2pc = loadImage("images/effects/puff2pc.png");
-  fx_puff3pc = loadImage("images/effects/puff3pc.png");
-  fx_spatter = loadImage("images/effects/spatter.png");
-  fx_spatterPc = loadImage("images/effects/spatterPc.png");
-  fx_spatterBlack = loadImage("images/effects/spatterBlack.png");
-  fx_streak = loadImage("images/effects/streak.png");
-  fx_streakPC = loadImage("images/effects/streakPC.png");
+  fx_jet = loadImage("images/effects/jet.png");
   fx_wrinkle8 = loadImage("images/effects/wrinkle8.png");
   fx_wrinkle64 = loadImage("images/effects/wrinkle64.png");
   fx_wrinkle256 = loadImage("images/effects/wrinkle256.png");
@@ -299,12 +292,18 @@ void setup()
   // Setup constant lights
   sceneLights = new ArrayList();
   // Directional lights
+  // Blue rim light from lower left
   DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
-  Light dirl = new Light(dirlDag, 0.2, color(192, 222, 255, 255));
+  Light dirl = new Light(dirlDag, 0.2, color(191, 223, 255, 255));
   dirl.makeDirectional( new PVector(0.2, -1, 0.2) );
   sceneLights.add(dirl);
-  dirl = new Light(dirlDag, 0.2, color(255,247,255, 255));
-  dirl.makeDirectional( new PVector(-1, -1, 0.3) );
+  // Cool fill from above
+  dirl = new Light(dirlDag, 0.05, color(223,223,255, 255));
+  dirl.makeDirectional( new PVector(0.3, 1.0, -0.5) );
+  sceneLights.add(dirl);
+  // Green rim
+  dirl = new Light(dirlDag, 0.5, color(223,255,223, 255));
+  dirl.makeDirectional( new PVector(-0.2, 0.5, 1.0) );
   sceneLights.add(dirl);
   /*
   // RGB test lights
@@ -396,6 +395,7 @@ void draw()
   // Manage story
   story.run();
   
+  
   // Manage scene lights
   Iterator iLights = sceneLights.iterator();
   while( iLights.hasNext() )
@@ -404,18 +404,31 @@ void draw()
     renderManager.addLight(l);
   }
   
+  
   // Manage ships
-  sceneShipManager.run(story.tick);
+  
+  // Smooth simulation
+  float simSteps = 4.0;
+  for(int i = 0;  i < simSteps;  i++)
+  {
+    sceneShipManager.run(story.tick / simSteps);
+  }
+  //sceneShipManager.run(story.tick);
+  
+  // Render
   sceneShipManager.render(renderManager);
+  // Manage population
   if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
   {
     spawnShipPreyA();
   }
   
+  
   // Draw excitement meters and HUD
   // These are hooked onto the renderManager's foreground feed
   hud.drawHUD();
   motionCursor.renderMoVis();
+  
   
   // Perform final render
   renderManager.render();
