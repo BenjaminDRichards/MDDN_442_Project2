@@ -73,6 +73,8 @@ PImage ship_preya_thrusterL_diff;
 PImage ship_preya_thrusterL_norm;
 PImage ship_preya_thrusterR_diff;
 PImage ship_preya_thrusterR_norm;
+PImage ship_preya_turret_diff;
+PImage ship_preya_turret_norm;
 
 PImage ship_preya_bridge_warp;
 PImage ship_preya_drive_warp;
@@ -88,6 +90,7 @@ PImage ship_preya_thrusterArmL_warp;
 PImage ship_preya_thrusterArmR_warp;
 PImage ship_preya_thrusterL_warp;
 PImage ship_preya_thrusterR_warp;
+PImage ship_preya_turret_warp;
 
 
 void setup()
@@ -215,6 +218,8 @@ void setup()
   ship_preya_thrusterL_norm = loadImage("images/ships/PreyA/PreyA_thrusterL_norm.png");
   ship_preya_thrusterR_diff = loadImage("images/ships/PreyA/PreyA_thrusterR_diff.png");
   ship_preya_thrusterR_norm = loadImage("images/ships/PreyA/PreyA_thrusterR_norm.png");
+  ship_preya_turret_diff = loadImage("images/ships/PreyA/PreyA_turret_diff.png");
+  ship_preya_turret_norm = loadImage("images/ships/PreyA/PreyA_turret_norm.png");
   
   // Load generated smooth warp fields
   ship_preya_bridge_warp = loadImage("images/ships/PreyA/PreyA_bridge_warp.png");
@@ -231,6 +236,24 @@ void setup()
   ship_preya_thrusterArmR_warp = loadImage("images/ships/PreyA/PreyA_thrusterArmR_warp.png");
   ship_preya_thrusterL_warp = loadImage("images/ships/PreyA/PreyA_thrusterL_warp.png");
   ship_preya_thrusterR_warp = loadImage("images/ships/PreyA/PreyA_thrusterR_warp.png");
+  ship_preya_turret_warp = loadImage("images/ships/PreyA/PreyA_turret_warp.png");
+  /*
+  ship_preya_bridge_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_bridge_norm.png"),  "PreyA_bridge_warp" );
+  ship_preya_drive_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_drive_norm.png"),  "PreyA_drive_warp" );
+  ship_preya_inner_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_inner_norm.png"),  "PreyA_inner_warp" );
+  ship_preya_motor1L_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor1L_norm.png"),  "PreyA_motor1L_warp" );
+  ship_preya_motor1R_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor1R_norm.png"),  "PreyA_motor1R_warp" );
+  ship_preya_motor2L_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor2L_norm.png"),  "PreyA_motor2L_warp" );
+  ship_preya_motor2R_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor2R_norm.png"),  "PreyA_motor2R_warp" );
+  ship_preya_motor3L_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor3L_norm.png"),  "PreyA_motor3L_warp" );
+  ship_preya_motor3R_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_motor3R_norm.png"),  "PreyA_motor3R_warp" );
+  ship_preya_prow_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_prow_norm.png"),  "PreyA_prow_warp" );
+  ship_preya_thrusterArmL_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_thrusterArmL_norm.png"),  "PreyA_thrusterArmL_warp" );
+  ship_preya_thrusterArmR_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_thrusterArmR_norm.png"),  "PreyA_thrusterArmR_warp" );
+  ship_preya_thrusterL_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_thrusterL_norm.png"),  "PreyA_thrusterL_warp" );
+  ship_preya_thrusterR_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_thrusterR_norm.png"),  "PreyA_thrusterR_warp" );
+  ship_preya_turret_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_turret_norm.png"),  "PreyA_turret_warp" );
+  */
   
   
   // Setup story
@@ -270,6 +293,10 @@ void setup()
     PVector targetPos = pos.get();
     targetPos.add( new PVector(0, 1, 0) );
     Ship gunboat = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 1);
+    gunboat.wrap = false;
+    gunboat.navMode = Ship.NAV_MODE_EXTERNAL;
+    gunboat.cloakOnInactive = true;
+    gunboat.invulnerable = true;
     
     playerShip = gunboat;
   }
@@ -408,7 +435,8 @@ void draw()
   // Manage ships
   
   // Smooth simulation
-  float simSteps = 4.0;
+  float simStep = 0.5;
+  float simSteps = ceil(story.tick / simStep);
   for(int i = 0;  i < simSteps;  i++)
   {
     sceneShipManager.run(story.tick / simSteps);
@@ -421,6 +449,7 @@ void draw()
   if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
   {
     spawnShipPreyA();
+    //spawnShipPreyGunboat();
   }
   
   
@@ -454,8 +483,12 @@ void draw()
   // Visualise camera systems
   if(diagnoseBuffers)
   {
-    bgLearn.diagnoseBuffers();
-    motionCursor.diagnose();
+    if(camConnected)
+    {
+      bgLearn.diagnoseBuffers();
+      motionCursor.diagnose();
+    }
+    renderManager.diagnoseBuffers(g);
   }
   
   //background(255);
@@ -481,10 +514,10 @@ void keyPressed()
       + "_" + nf(hour(), 2) + nf(minute(), 2) + nf(second(), 2) + "_" + millis() + ".jpg");
   }
   
+  if( (key == '~'  ||  key == '`'))  {  diagnoseBuffers = !diagnoseBuffers;  }
+  
   if(camConnected)
   {
-    if( (key == '~'  ||  key == '`'))  {  diagnoseBuffers = !diagnoseBuffers;  }
-    
     if( key == 'L'  ||  key == 'l' )  {  bgLearn.learnInstant();  }
     
     if( key == '1' )       {  bgLearn.slideCanvasBlur(0.001);  }
@@ -566,6 +599,15 @@ void spawnShipPreyA()
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
+}
+
+void spawnShipPreyGunboat()
+{
+  PVector pos = new PVector(random(-60,60), -10, 0);
+  PVector targetPos = pos.get();
+  targetPos.add( PVector.random3D() );
+  Ship s = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 0);
+  s.navMode = s.NAV_MODE_AVOID;
 }
 
 

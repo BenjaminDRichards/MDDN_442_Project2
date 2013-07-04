@@ -367,6 +367,41 @@ class RenderManager
   }
   
   
+  public void diagnoseBuffers(PGraphics pg)
+  {
+    pg.pushMatrix();
+    pg.pushStyle();
+    
+    ArrayList bufferList = new ArrayList();
+    //bDiffuse, bNormal, bSpecular, bLight, bEmissive, bWarp, bOutput, bBackground, bForeground, bScreenWarp;
+    bufferList.add(bDiffuse);
+    bufferList.add(bNormal);
+    bufferList.add(bSpecular);
+    bufferList.add(bLight);
+    bufferList.add(bEmissive);
+    bufferList.add(bWarp);
+    
+    int frames = bufferList.size();
+    PVector offsetSpacing = new PVector(8.0, 8.0);
+    float pipHeight = (pg.height - (frames + 1) * offsetSpacing.y) / (float) frames;
+    PVector displayRes = new PVector( pipHeight * pg.width / (float)pg.height, pipHeight);
+    pg.fill(255);
+    pg.translate(pg.width - displayRes.x - (offsetSpacing.x * 2.0), 0.0);
+    
+    Iterator i = bufferList.iterator();
+    while( i.hasNext() )
+    {
+      PGraphics b = (PGraphics) i.next();
+      pg.translate(0, offsetSpacing.y);
+      pg.image(b, 0,0, displayRes.x, displayRes.y);
+      pg.translate(0, displayRes.y);
+    }
+    pg.popMatrix();
+    pg.popStyle();
+  }
+  // diagnoseBuffers
+  
+  
   public void addLight(Light light)
   {
     lights.add(light);

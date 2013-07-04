@@ -54,7 +54,7 @@ class Hud
     // Super-gauge: FPS
     output.pushMatrix();
     output.translate(output.width * 0.01, output.height * -0.013);
-    for(int i = 0;  i <= frameRate;  i += 10)
+    for(int i = 0;  i <= frameRate;  i += 8)
     {
       output.rect(0, 0, output.width * 0.01, output.height * -0.002);
       output.translate(output.width * 0.012, 0.0);

@@ -211,6 +211,11 @@ class Ship
       }
       slave.cloaked = cloaked;
       slave.cloakActivation = cloakActivation;
+      // Remove on slave death
+      if(slave.pleaseRemove)
+      {
+        i.remove();
+      }
     }
   }
   // run
@@ -361,22 +366,22 @@ class Ship
   private void doNavTargetingAvoid()
   // Behaviour that avoids other ships in the manager
   {
-    // Place the camera comfortably in front of the ship
+    // Place the target comfortably in front of the ship
     target.snapTo(root);
     target.setParent(root);
-    target.moveLocal(radius * 4.0, 0, 0);
+    target.moveLocal(destinationRadius * 1.1, 0, 0);
     target.setParentToWorld();
     // Introduce some wiggle
     PVector r = PVector.random2D();
     r.mult(1.0);
     target.moveLocal(r.x, r.y, 0.0);
     // Look for nearby obstacles
-    float radiusMult = 2.0;
+    float radiusMult = 1.0;
     float detectRadius = radius * radiusMult;
-    Ship ship = shipManager.getNearestShipTo( target.getWorldPosition() );
+    Ship ship = shipManager.getNearestNeighbourTo( target.getWorldPosition(),  this );
     if(ship != null)
     {
-      PVector vecBetween = PVector.sub( root.getWorldPosition(),  ship.getRoot().getWorldPosition() );
+      PVector vecBetween = PVector.sub( target.getWorldPosition(),  ship.getRoot().getWorldPosition() );
       float otherDetectRadius = ship.radius * radiusMult;
       if( vecBetween.mag() < detectRadius + otherDetectRadius)
       {
@@ -601,8 +606,6 @@ class Ship
   
   private void doCloaking(float tick)
   {
-    if(!cloakOnInactive)  return;
-    
     if(cloaked)
     {
       if(0 < excitement)
@@ -621,7 +624,11 @@ class Ship
       if(excitement <= 0)
       {
         // Start cloaking
-        cloaked = true;
+        if(cloakOnInactive)
+        {
+          // This means it only cloaks if it's set to, or if it's a slave of a cloaker
+          cloaked = true;
+        }
       }
       else
       {
@@ -666,7 +673,7 @@ class Ship
   public void fireWeapon()
   // Perform aggressive emission
   {
-    if(reloadTime < reload  &&  cloakActivation == 0)
+    if(reloadTime < reload  &&  cloakActivation == 0  && !exploding)
     {
       // Weapon is primed
       shooting = true;
@@ -729,6 +736,12 @@ class Ship
       
       // Enable explosion systems
       exploding = true;
+      Iterator i = slaves.iterator();
+      while( i.hasNext() )
+      {
+        Ship s = (Ship) i.next();
+        s.startExploding();
+      }
     }
   }
   // startExploding
@@ -747,7 +760,7 @@ class Ship
       // If there are no more sprites and the particles have run out, request removal
       if( sprites.size() <= 0 )
       {
-        if( particles.size() == 0 )
+        if( particles.size() <= 0  &&  slaves.size() <= 0 )
         {
           pleaseRemove = true;
         }
@@ -973,7 +986,7 @@ class Ship
     float thrusterMaxDepression = PI / 6.0;
     
     // Create left turn panel
-    DAGTransform thrusterArmLdag = new DAGTransform(0, -6.5, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
+    DAGTransform thrusterArmLdag = new DAGTransform(-0.5, -6.0, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
     thrusterArmLdag.setParent(prowDag);
     /* Setup some graphics */
     Sprite thrusterArmL = new Sprite(thrusterArmLdag, ship_preya_thrusterArmL_diff, 8,8, -0.75,-0.25);
@@ -989,7 +1002,7 @@ class Ship
     breakpoints.add(thrusterArmLdag);
     
     // Create right turn panel
-    DAGTransform thrusterArmRdag = new DAGTransform(-0, -6.5, 0, 0, 1,1,1);
+    DAGTransform thrusterArmRdag = new DAGTransform(0.5, -6.0, 0, 0, 1,1,1);
     thrusterArmRdag.setParent(prowDag);
     /* Setup some graphics */
     Sprite thrusterArmR = new Sprite(thrusterArmRdag, ship_preya_thrusterArmR_diff, 8,8, -0.25,-0.25);
@@ -1005,10 +1018,10 @@ class Ship
     breakpoints.add(thrusterArmRdag);
     
     // Create left thruster
-    DAGTransform thrusterLdag = new DAGTransform(-2.8, -2.7, 0, 0, 1,1,1);
+    DAGTransform thrusterLdag = new DAGTransform(-2.9, -2.3, 0, 0, 1,1,1);
     thrusterLdag.setParent(thrusterArmLdag);
     /* Setup some graphics */
-    Sprite thrusterL = new Sprite(thrusterLdag, ship_preya_thrusterL_diff, 2,2, -0.5,-0.5);
+    Sprite thrusterL = new Sprite(thrusterLdag, ship_preya_thrusterL_diff, 4,4, -0.5,-0.5);
     thrusterL.setSpecular(ship_preya_thrusterL_diff);
     thrusterL.setNormal(ship_preya_thrusterL_norm);
     // Set sliders for left turn panel
@@ -1033,10 +1046,10 @@ class Ship
     animTurnRight.add(thrusterLLightDag_anim);
     
     // Create right thruster
-    DAGTransform thrusterRdag = new DAGTransform(2.8, -2.7, 0, 0, 1,1,1);
+    DAGTransform thrusterRdag = new DAGTransform(2.9, -2.3, 0, 0, 1,1,1);
     thrusterRdag.setParent(thrusterArmRdag);
     /* Setup some graphics */
-    Sprite thrusterR = new Sprite(thrusterRdag, ship_preya_thrusterR_diff, 2,2, -0.5,-0.5);
+    Sprite thrusterR = new Sprite(thrusterRdag, ship_preya_thrusterR_diff, 4,4, -0.5,-0.5);
     thrusterR.setSpecular(ship_preya_thrusterR_diff);
     thrusterR.setNormal(ship_preya_thrusterR_norm);
     // Set sliders for left turn panel
@@ -1045,7 +1058,7 @@ class Ship
     DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator thrusterRdag_anim = thrusterRdag.makeSlider(thrusterRdag_key1, thrusterRdag_key2);
     // Register slider to internal controllers
-    animTurnRight.add(thrusterRdag_anim);
+    animTurnLeft.add(thrusterRdag_anim);
     // Attach nozzle light
     DAGTransform thrusterRLightDag = new DAGTransform(0,0,0, 0, 1,1,1);
     thrusterRLightDag.snapTo(thrusterRdag);
@@ -1062,14 +1075,17 @@ class Ship
     
     // Front maneuver jets
     
+    float jetScale = 4.0;
+    
     // Left jet
     DAGTransform jetLDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
     jetLDag.snapTo(thrusterLdag);
     jetLDag.setParent(thrusterLdag);
     jetLDag.rotate( -HALF_PI );  // Because of snapping
+    jetLDag.moveWorld(-0.5, 0.25);
     jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetLS = new Sprite(jetLDag, null, 5,5, -0.5,-1.0);
+    Sprite jetLS = new Sprite(jetLDag, null, jetScale,jetScale, -0.5,-1.0);
     jetLS.setEmissive(fx_jet);
     jetLS.masterTintEmit = colDrive;
     // Set animators
@@ -1083,9 +1099,10 @@ class Ship
     jetRDag.snapTo(thrusterRdag);
     jetRDag.setParent(thrusterRdag);
     jetRDag.rotate( HALF_PI );  // Because of snapping
+    jetRDag.moveWorld(0.5, 0.25);
     jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetRS = new Sprite(jetRDag, null, 5,5, -0.5,-1.0);
+    Sprite jetRS = new Sprite(jetRDag, null, jetScale,jetScale, -0.5,-1.0);
     jetRS.setEmissive(fx_jet);
     jetRS.masterTintEmit = colDrive;
     // Set animators
@@ -1102,7 +1119,7 @@ class Ship
     jetLBackDag.moveWorld(-1.0, 1.0);
     jetLBackDag.useSX = true;  jetLBackDag.useSY = true;  jetLBackDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetLBackS = new Sprite(jetLBackDag, null, 5,5, -0.5,-1.0);
+    Sprite jetLBackS = new Sprite(jetLBackDag, null, jetScale,jetScale, -0.5,-1.0);
     jetLBackS.setEmissive(fx_jet);
     jetLBackS.masterTintEmit = colDrive;
     // Set animators
@@ -1117,7 +1134,7 @@ class Ship
     jetRBackDag.moveWorld(1.0, 1.0);
     jetRBackDag.useSX = true;  jetRBackDag.useSY = true;  jetRBackDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetRBackS = new Sprite(jetRBackDag, null, 5,5, -0.5,-1.0);
+    Sprite jetRBackS = new Sprite(jetRBackDag, null, jetScale,jetScale, -0.5,-1.0);
     jetRBackS.setEmissive(fx_jet);
     jetRBackS.masterTintEmit = colDrive;
     // Set animators
@@ -1276,12 +1293,12 @@ class Ship
   // A ship with guns on it
   {
     // Change behaviour
-    navMode = NAV_MODE_EXTERNAL;
+    navMode = NAV_MODE_AVOID;
+    radius = 5;
     destinationRadius = 15.0;
     thrust = 0.0015;
     turnThrust = 0.0002;
-    wrap = false;
-    cloakOnInactive = true;
+    //cloakOnInactive = true;
     colExplosion = color(255,222,192,255);
     
     
@@ -1382,7 +1399,7 @@ class Ship
     float thrusterMaxDepression = PI / 6.0;
     
     // Create left turn panel
-    DAGTransform thrusterArmLdag = new DAGTransform(0, -8.5, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
+    DAGTransform thrusterArmLdag = new DAGTransform(-0.5, -8.0, 0, 0, 1,1,1);  // Slightly offset: +1,+1 due odd sprite center
     thrusterArmLdag.setParent(prowDag);
     /* Setup some graphics */
     Sprite thrusterArmL = new Sprite(thrusterArmLdag, ship_preya_thrusterArmL_diff, 8,8, -0.75,-0.25);
@@ -1399,7 +1416,7 @@ class Ship
     breakpoints.add(thrusterArmLdag);
     
     // Create right turn panel
-    DAGTransform thrusterArmRdag = new DAGTransform(-0, -8.5, 0, 0, 1,1,1);
+    DAGTransform thrusterArmRdag = new DAGTransform(0.5, -8.0, 0, 0, 1,1,1);
     thrusterArmRdag.setParent(prowDag);
     /* Setup some graphics */
     Sprite thrusterArmR = new Sprite(thrusterArmRdag, ship_preya_thrusterArmR_diff, 8,8, -0.25,-0.25);
@@ -1416,10 +1433,10 @@ class Ship
     breakpoints.add(thrusterArmRdag);
     
     // Create left thruster
-    DAGTransform thrusterLdag = new DAGTransform(-2.8, -4.7, 0, 0, 1,1,1);
+    DAGTransform thrusterLdag = new DAGTransform(-2.9, -4.3, 0, 0, 1,1,1);
     thrusterLdag.setParent(thrusterArmLdag);
     /* Setup some graphics */
-    Sprite thrusterL = new Sprite(thrusterLdag, ship_preya_thrusterL_diff, 2,2, -0.5,-0.5);
+    Sprite thrusterL = new Sprite(thrusterLdag, ship_preya_thrusterL_diff, 4,4, -0.5,-0.5);
     thrusterL.setSpecular(ship_preya_thrusterL_diff);
     thrusterL.setNormal(ship_preya_thrusterL_norm);
     thrusterL.setWarp(ship_preya_thrusterL_warp);
@@ -1445,10 +1462,10 @@ class Ship
     animTurnRight.add(thrusterLLightDag_anim);
     
     // Create right thruster
-    DAGTransform thrusterRdag = new DAGTransform(2.8, -4.7, 0, 0, 1,1,1);
+    DAGTransform thrusterRdag = new DAGTransform(2.9, -4.3, 0, 0, 1,1,1);
     thrusterRdag.setParent(thrusterArmRdag);
     /* Setup some graphics */
-    Sprite thrusterR = new Sprite(thrusterRdag, ship_preya_thrusterR_diff, 2,2, -0.5,-0.5);
+    Sprite thrusterR = new Sprite(thrusterRdag, ship_preya_thrusterR_diff, 4,4, -0.5,-0.5);
     thrusterR.setSpecular(ship_preya_thrusterR_diff);
     thrusterR.setNormal(ship_preya_thrusterR_norm);
     thrusterR.setWarp(ship_preya_thrusterR_warp);
@@ -1458,7 +1475,7 @@ class Ship
     DAGTransform thrusterRdag_key2 = new DAGTransform(0,0,0, -thrusterMaxDepression, 1,1,1);
     Animator thrusterRdag_anim = thrusterRdag.makeSlider(thrusterRdag_key1, thrusterRdag_key2);
     // Register slider to internal controllers
-    animTurnRight.add(thrusterRdag_anim);
+    animTurnLeft.add(thrusterRdag_anim);
     // Attach nozzle light
     DAGTransform thrusterRLightDag = new DAGTransform(0,0,0, 0, 1,1,1);
     thrusterRLightDag.snapTo(thrusterRdag);
@@ -1475,14 +1492,17 @@ class Ship
     
     // Front maneuver jets
     
+    float jetScale = 4.0;
+    
     // Left jet
     DAGTransform jetLDag = new DAGTransform(0.0, 0.0, 0.0,  -HALF_PI,  1,1,1);
     jetLDag.snapTo(thrusterLdag);
     jetLDag.setParent(thrusterLdag);
     jetLDag.rotate( -HALF_PI );  // Because of snapping
+    jetLDag.moveWorld(-0.5, 0.25);
     jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetLS = new Sprite(jetLDag, null, 5,5, -0.5,-1.0);
+    Sprite jetLS = new Sprite(jetLDag, null, jetScale,jetScale, -0.5,-1.0);
     jetLS.setEmissive(fx_jet);
     jetLS.masterTintEmit = colDrive;
     // Set animators
@@ -1496,9 +1516,10 @@ class Ship
     jetRDag.snapTo(thrusterRdag);
     jetRDag.setParent(thrusterRdag);
     jetRDag.rotate( HALF_PI );  // Because of snapping
+    jetRDag.moveWorld(0.5, 0.25);
     jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetRS = new Sprite(jetRDag, null, 5,5, -0.5,-1.0);
+    Sprite jetRS = new Sprite(jetRDag, null, jetScale,jetScale, -0.5,-1.0);
     jetRS.setEmissive(fx_jet);
     jetRS.masterTintEmit = colDrive;
     // Set animators
@@ -1515,7 +1536,7 @@ class Ship
     jetLBackDag.moveWorld(-2.0, 2.0);
     jetLBackDag.useSX = true;  jetLBackDag.useSY = true;  jetLBackDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetLBackS = new Sprite(jetLBackDag, null, 5,5, -0.5,-1.0);
+    Sprite jetLBackS = new Sprite(jetLBackDag, null, jetScale,jetScale, -0.5,-1.0);
     jetLBackS.setEmissive(fx_jet);
     jetLBackS.masterTintEmit = colDrive;
     // Set animators
@@ -1530,7 +1551,7 @@ class Ship
     jetRBackDag.moveWorld(2.0, 2.0);
     jetRBackDag.useSX = true;  jetRBackDag.useSY = true;  jetRBackDag.useSZ = true;
     /* Setup some graphics */
-    Sprite jetRBackS = new Sprite(jetRBackDag, null, 5,5, -0.5,-1.0);
+    Sprite jetRBackS = new Sprite(jetRBackDag, null, jetScale,jetScale, -0.5,-1.0);
     jetRBackS.setEmissive(fx_jet);
     jetRBackS.masterTintEmit = colDrive;
     // Set animators
@@ -1543,10 +1564,10 @@ class Ship
     // Missile turret
     DAGTransform mtHost = new DAGTransform(-5,5,0, -HALF_PI, 1,1,1);    // Rotated to face forward
     mtHost.setParent(hull);
+    breakpoints.add(mtHost);
     // Config turret
     Ship missileTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
     missileTurret.configureAsTurretMissileA();
-    //missileTurret.configureAsTurretBulletA();
     addSlave(missileTurret);
     missileTurret.getRoot().snapTo(mtHost);
     missileTurret.getRoot().setParent(mtHost);
@@ -1554,6 +1575,7 @@ class Ship
     // Laser turret
     DAGTransform ltHost = new DAGTransform(5,5,0, -HALF_PI, 1,1,1);    // Rotated to face forward
     ltHost.setParent(hull);
+    breakpoints.add(ltHost);
     // Config turret
     Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
     laserTurret.configureAsTurretBulletA();
@@ -1603,10 +1625,10 @@ class Ship
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    Sprite hullS = new Sprite(hull, ship_preya_prow_diff, 6,6, -0.5,-0.5);
-    hullS.setSpecular(ship_preya_prow_diff);
-    hullS.setNormal(ship_preya_prow_norm);
-    hullS.setWarp(ship_preya_prow_warp);
+    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 8,8, -0.5,-0.5);
+    hullS.setSpecular(ship_preya_turret_diff);
+    hullS.setNormal(ship_preya_turret_norm);
+    hullS.setWarp(ship_preya_turret_warp);
     sprites.add(hullS);
     
     // Finalise
@@ -1633,10 +1655,10 @@ class Ship
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    Sprite hullS = new Sprite(hull, ship_preya_prow_diff, 6,6, -0.5,-0.5);
-    hullS.setSpecular(ship_preya_prow_diff);
-    hullS.setNormal(ship_preya_prow_norm);
-    hullS.setWarp(ship_preya_prow_warp);
+    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 8,8, -0.5,-0.5);
+    hullS.setSpecular(ship_preya_turret_diff);
+    hullS.setNormal(ship_preya_turret_norm);
+    hullS.setWarp(ship_preya_turret_warp);
     sprites.add(hullS);
     
     // Finalise
@@ -1651,8 +1673,8 @@ class Ship
     // Set homing behaviour
     navMode = NAV_MODE_HOMING;
     maxVel = 0.6;
-    maxTurn = 0.06;
-    turnThrust = 0.003;
+    maxTurn = 0.04;
+    turnThrust = 0.002;
     turnDrag = 0.95;
     thrust = 0.02;
     radius = 3.0;

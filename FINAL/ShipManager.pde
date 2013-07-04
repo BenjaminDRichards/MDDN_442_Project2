@@ -105,6 +105,28 @@ class ShipManager
   // getNearestShipTo
   
   
+  public Ship getNearestNeighbourTo(PVector pos, Ship ship)
+  {
+    if(ships.size() == 0)  return( null );
+    
+    Ship sCandidate = (Ship) ships.get(0);
+    float dCandidate = sCandidate.getRoot().getWorldPosition().dist(pos);
+    Iterator i = ships.iterator();
+    while( i.hasNext() )
+    {
+      Ship s = (Ship) i.next();
+      float d = s.getRoot().getWorldPosition().dist(pos);
+      if( d < dCandidate  &&  !s.equals(ship) )
+      {
+        sCandidate = s;
+        dCandidate = d;
+      }
+    }
+    return( sCandidate );
+  }
+  // getNearestNeighbourTo
+  
+  
   public Ship getNearestEnemyTo(PVector pos, int friendlyTeam)
   {
     if(ships.size() == 0)  return( null );

@@ -21,7 +21,7 @@ class Sprite
     tintNorm = color(255,255);
     tintSpec = color(255,255);
     tintEmit = color(255,255);
-    tintWarp = color(255,255);
+    tintWarp = color(255,0);    // Warp is disabled by default
     
     masterTintDiff = color(255,255);
     masterTintNorm = color(255,255);
