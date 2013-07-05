@@ -70,13 +70,14 @@ class ParticleEmitter
     PVector velT = template.vel.get();
     float speedMax = velT.mag();
     float speed = pow(random(1.0), 2.0) * speedMax;
-    PVector velN = PVector.random3D();
+    PVector velN = PVector.random2D();
     velN.mult(speed);
     float spinN = random(-1, 1) * template.spin;
     // Age
-    float ageMaxN = random(template.ageMax);
+    float ageMaxN = pow( random(1.0), 2.0 ) * template.ageMax;//random(template.ageMax);
     
     Particle p = new Particle(dag,  sprite,  velN, spinN, ageMaxN);
+    p.age = 0.0;
     
     // Tweak parameters
     p.aimAlongMotion = template.aimAlongMotion;

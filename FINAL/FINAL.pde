@@ -92,6 +92,31 @@ PImage ship_preya_thrusterL_warp;
 PImage ship_preya_thrusterR_warp;
 PImage ship_preya_turret_warp;
 
+PImage debris_01_diff, debris_01_norm;
+PImage debris_02_diff, debris_02_norm;
+PImage debris_03_diff, debris_03_norm;
+PImage debris_04_diff, debris_04_norm;
+PImage debris_05_diff, debris_05_norm;
+PImage debris_06_diff, debris_06_norm;
+PImage debris_07_diff, debris_07_norm;
+PImage debris_08_diff, debris_08_norm;
+PImage debris_09_diff, debris_09_norm;
+PImage debris_10_diff, debris_10_norm;
+PImage debris_11_diff, debris_11_norm;
+PImage debris_12_diff, debris_12_norm;
+PImage debris_13_diff, debris_13_norm;
+PImage debris_14_diff, debris_14_norm;
+PImage debris_15_diff, debris_15_norm;
+PImage debris_16_diff, debris_16_norm;
+PImage debris_17_diff, debris_17_norm;
+PImage debris_18_diff, debris_18_norm;
+PImage debris_19_diff, debris_19_norm;
+PImage debris_20_diff, debris_20_norm;
+PImage debris_21_diff, debris_21_norm;
+PImage debris_22_diff, debris_22_norm;
+PImage debris_23_diff, debris_23_norm;
+PImage debris_24_diff, debris_24_norm;
+
 
 void setup()
 {
@@ -254,6 +279,58 @@ void setup()
   ship_preya_thrusterR_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_thrusterR_norm.png"),  "PreyA_thrusterR_warp" );
   ship_preya_turret_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_turret_norm.png"),  "PreyA_turret_warp" );
   */
+  
+  // Load debris sprites
+  debris_01_diff = loadImage("images/effects/debris/debris01_diff.png");
+  debris_01_norm = loadImage("images/effects/debris/debris01_norm.png");
+  debris_02_diff = loadImage("images/effects/debris/debris02_diff.png");
+  debris_02_norm = loadImage("images/effects/debris/debris02_norm.png");
+  debris_03_diff = loadImage("images/effects/debris/debris03_diff.png");
+  debris_03_norm = loadImage("images/effects/debris/debris03_norm.png");
+  debris_04_diff = loadImage("images/effects/debris/debris04_diff.png");
+  debris_04_norm = loadImage("images/effects/debris/debris04_norm.png");
+  debris_05_diff = loadImage("images/effects/debris/debris05_diff.png");
+  debris_05_norm = loadImage("images/effects/debris/debris05_norm.png");
+  debris_06_diff = loadImage("images/effects/debris/debris06_diff.png");
+  debris_06_norm = loadImage("images/effects/debris/debris06_norm.png");
+  debris_07_diff = loadImage("images/effects/debris/debris07_diff.png");
+  debris_07_norm = loadImage("images/effects/debris/debris07_norm.png");
+  debris_08_diff = loadImage("images/effects/debris/debris08_diff.png");
+  debris_08_norm = loadImage("images/effects/debris/debris08_norm.png");
+  debris_09_diff = loadImage("images/effects/debris/debris09_diff.png");
+  debris_09_norm = loadImage("images/effects/debris/debris09_norm.png");
+  
+  debris_10_diff = loadImage("images/effects/debris/debris10_diff.png");
+  debris_10_norm = loadImage("images/effects/debris/debris10_norm.png");
+  debris_11_diff = loadImage("images/effects/debris/debris11_diff.png");
+  debris_11_norm = loadImage("images/effects/debris/debris11_norm.png");
+  debris_12_diff = loadImage("images/effects/debris/debris12_diff.png");
+  debris_12_norm = loadImage("images/effects/debris/debris12_norm.png");
+  debris_13_diff = loadImage("images/effects/debris/debris13_diff.png");
+  debris_13_norm = loadImage("images/effects/debris/debris13_norm.png");
+  debris_14_diff = loadImage("images/effects/debris/debris14_diff.png");
+  debris_14_norm = loadImage("images/effects/debris/debris14_norm.png");
+  debris_15_diff = loadImage("images/effects/debris/debris15_diff.png");
+  debris_15_norm = loadImage("images/effects/debris/debris15_norm.png");
+  debris_16_diff = loadImage("images/effects/debris/debris16_diff.png");
+  debris_16_norm = loadImage("images/effects/debris/debris16_norm.png");
+  debris_17_diff = loadImage("images/effects/debris/debris17_diff.png");
+  debris_17_norm = loadImage("images/effects/debris/debris17_norm.png");
+  debris_18_diff = loadImage("images/effects/debris/debris18_diff.png");
+  debris_18_norm = loadImage("images/effects/debris/debris18_norm.png");
+  debris_19_diff = loadImage("images/effects/debris/debris19_diff.png");
+  debris_19_norm = loadImage("images/effects/debris/debris19_norm.png");
+  
+  debris_20_diff = loadImage("images/effects/debris/debris20_diff.png");
+  debris_20_norm = loadImage("images/effects/debris/debris20_norm.png");
+  debris_21_diff = loadImage("images/effects/debris/debris21_diff.png");
+  debris_21_norm = loadImage("images/effects/debris/debris21_norm.png");
+  debris_22_diff = loadImage("images/effects/debris/debris22_diff.png");
+  debris_22_norm = loadImage("images/effects/debris/debris22_norm.png");
+  debris_23_diff = loadImage("images/effects/debris/debris23_diff.png");
+  debris_23_norm = loadImage("images/effects/debris/debris23_norm.png");
+  debris_24_diff = loadImage("images/effects/debris/debris24_diff.png");
+  debris_24_norm = loadImage("images/effects/debris/debris24_norm.png");
   
   
   // Setup story

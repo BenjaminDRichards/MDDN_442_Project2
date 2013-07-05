@@ -11,6 +11,8 @@ class ShipManager
   public static final int MODEL_TURRET_BULLET_A = 11;
   public static final int MODEL_MISSILE_A = 20;
   public static final int MODEL_BULLET_A = 21;
+  public static final int MODEL_MISSILE_B = 22;
+  public static final int MODEL_BULLET_B = 23;
   
   ShipManager()
   {
@@ -73,6 +75,12 @@ class ShipManager
         break;
       case MODEL_BULLET_A:
         ship.configureAsBulletA();
+        break;
+      case MODEL_MISSILE_B:
+        ship.configureAsMissileB();
+        break;
+      case MODEL_BULLET_B:
+        ship.configureAsBulletB();
         break;
       default:
         break;
@@ -137,7 +145,7 @@ class ShipManager
     while( i.hasNext() )
     {
       Ship s = (Ship) i.next();
-      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable)
+      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable  &&  !s.cloaked)
       {
         float d = s.getRoot().getWorldPosition().dist(pos);
         if( (d < dCandidate)  ||  (sCandidate == null) )
@@ -159,7 +167,7 @@ class ShipManager
     while( i.hasNext() )
     {
       Ship s = (Ship) i.next();
-      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable)
+      if(s.team != friendlyTeam  &&  !s.exploding  &&  s.targetable  &&  !s.cloaked)
         enemies.add(s);
     }
     

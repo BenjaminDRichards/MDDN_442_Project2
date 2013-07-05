@@ -31,25 +31,6 @@ class Sprite
   }
   
   
-  public void render(PGraphics canvas)
-  {
-    canvas.pushMatrix();
-    canvas.translate(transform.getWorldPosition().x, transform.getWorldPosition().y);
-    canvas.rotate(transform.getWorldRotation());
-    canvas.scale(transform.getWorldScale().x, transform.getWorldScale().y);
-    canvas.image(imgDiff,  coverageX * centerX, coverageY * centerY,  coverageX, coverageY);
-    canvas.popMatrix();
-  }
-  // render
-  
-  public void render()
-  // Helper which draws to the main screen
-  {
-    render(g);
-  }
-  // render
-  
-  
   public void setDiffuse(PImage img)  {  imgDiff = img;  }
   public void setNormal(PImage img)  {  imgNorm = img;  }
   public void setSpecular(PImage img)  {  imgSpec = img;  }

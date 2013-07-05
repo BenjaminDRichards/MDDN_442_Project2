@@ -16,11 +16,15 @@ class Particle
   int fadeDiff, fadeNorm, fadeSpec, fadeEmit, fadeWarp;
   
   public static final int FADE_LINEAR = 1;
-  public static final int FADE_SMOOTH = 2;
-  public static final int FADE_SQUARE = 3;
-  public static final int FADE_CUBE = 4;
-  public static final int FADE_INOUT = 5;
-  public static final int FADE_INOUT_SMOOTH = 6;
+  public static final int FADE_LINEAR_INV = 2;
+  public static final int FADE_SMOOTH = 3;
+  public static final int FADE_SQUARE = 4;
+  public static final int FADE_CUBE = 5;
+  public static final int FADE_SQRT = 6;
+  public static final int FADE_CUBEROOT = 7;
+  public static final int FADE_INOUT = 8;
+  public static final int FADE_INOUT_SMOOTH = 9;
+  public static final int FADE_NIL = 10;
   
   
   Particle(DAGTransform transform, Sprite sprite, PVector vel, float spin, float ageMax)
@@ -71,11 +75,11 @@ class Particle
     }
     
     // Age fading
-    sprite.tintDiff = color( sprite.tintDiff, 255 * getAlpha(fadeDiff) );
-    sprite.tintNorm = color( sprite.tintNorm, 255 * getAlpha(fadeNorm) );
-    sprite.tintSpec = color( sprite.tintSpec, 255 * getAlpha(fadeSpec) );
-    sprite.tintEmit = color( sprite.tintEmit, 255 * getAlpha(fadeEmit) );
-    sprite.tintWarp = color( sprite.tintWarp, 255 * getAlpha(fadeWarp) );
+    sprite.tintDiff = mixColorAndAlpha( sprite.tintDiff, 255 * getAlpha(fadeDiff) );
+    sprite.tintNorm = mixColorAndAlpha( sprite.tintNorm, 255 * getAlpha(fadeNorm) );
+    sprite.tintSpec = mixColorAndAlpha( sprite.tintSpec, 255 * getAlpha(fadeSpec) );
+    sprite.tintEmit = mixColorAndAlpha( sprite.tintEmit, 255 * getAlpha(fadeEmit) );
+    sprite.tintWarp = mixColorAndAlpha( sprite.tintWarp, 255 * getAlpha(fadeWarp) );
     
     // Age dispersion
     if(disperse)
@@ -101,12 +105,18 @@ class Particle
     {
       case FADE_LINEAR:
         return( ageAlpha );
+      case FADE_LINEAR_INV:
+        return( 1.0 - ageAlpha );
       case FADE_SMOOTH:
         return( 3.0 * pow(ageAlpha, 2.0) - 2.0 * pow(ageAlpha, 3.0) );
       case FADE_SQUARE:
         return( pow( ageAlpha, 2.0 ) );
       case FADE_CUBE:
         return( pow( ageAlpha, 3.0 ) );
+      case FADE_SQRT:
+        return( sqrt( ageAlpha ) );
+      case FADE_CUBEROOT:
+        return( pow( ageAlpha, 1.0 / 3.0 ) );
       case FADE_INOUT:
         ageAlpha *= 2;
         if(1.0 < ageAlpha)  {  ageAlpha = 2 - ageAlpha;  }
@@ -115,11 +125,20 @@ class Particle
         ageAlpha *= 2;
         if(1.0 < ageAlpha)  {  ageAlpha = 2 - ageAlpha;  }
         return( 3.0 * pow(ageAlpha, 2.0) - 2.0 * pow(ageAlpha, 3.0) );
+      case FADE_NIL:
+        return( 1.0 );
       default:
         break;
     }
     return( ageAlpha );
   }
   // getAlpha
+  
+  
+  private color mixColorAndAlpha(color col, float aleph)
+  {
+    return( color(  red(col), green(col), blue(col), aleph ) );
+  }
+  // mixColorAndAlpha
 }
 // Particle

@@ -30,7 +30,7 @@ class Ship
   public static final int NAV_MODE_EXTERNAL = 6;
   
   // Animation data
-  ArrayList animTurnLeft, animTurnRight, animThrust, anim;
+  ArrayList animTurnLeft, animTurnRight, animThrust, animWeaponShoot, animWeaponReload, anim;
   ArrayList particles, emitters;
   
   // Destructural data
@@ -69,6 +69,8 @@ class Ship
   // Munition data
   public static final int MUNITION_BULLET_A = 0;
   public static final int MUNITION_MISSILE_A = 1;
+  public static final int MUNITION_BULLET_B = 2;
+  public static final int MUNITION_MISSILE_B = 3;
   
   
   Ship(PVector pos, PVector targetPos, int navMode, ShipManager shipManager, int team)
@@ -84,6 +86,8 @@ class Ship
     animTurnLeft = new ArrayList();
     animTurnRight = new ArrayList();
     animThrust = new ArrayList();
+    animWeaponShoot = new ArrayList();
+    animWeaponReload = new ArrayList();
     anim = new ArrayList();
     particles = new ArrayList();
     emitters = new ArrayList();
@@ -135,8 +139,8 @@ class Ship
     reload = 0;
     reloadTime = 180;
     shooting = false;
-    firingTime = 0;
     firingTimeMax = 20;
+    firingTime = firingTimeMax;
     munitionType = MUNITION_BULLET_A;
     teamCol = color(255,255,255);
     
@@ -188,12 +192,15 @@ class Ship
     // Do aging and time management
     age += tick;
     if(!shooting)
-    {      reload += tick;    }
+    {      reload = constrain(reload + tick,  0.0, reloadTime);    }
     else
     {
-      firingTime += tick;
-      if(firingTimeMax < firingTime)
-      {        shooting = false;      }
+      firingTime = constrain(firingTime + tick, 0.0, firingTimeMax);
+      if(firingTimeMax <= firingTime)
+      {
+        fireWeapon();
+        shooting = false;
+      }
     }
     
     // Do slaves
@@ -450,9 +457,13 @@ class Ship
       // Find the current heading
       float worldAng = root.getWorldRotation();
       float deviation = (candidateWorldBearing - worldAng) % TWO_PI;
-      if(abs(deviation) < turretAcquisitionArc  &&  candidate != null)
+      if(abs(deviation) < turretAcquisitionArc  &&  candidate != null  && !shooting  &&  reloadTime <= reload)
       {
-        fireWeapon();
+        //fireWeapon();
+        
+        // Start shooting animation
+        shooting = true;
+        firingTime = 0;
       }
     }
     else
@@ -574,6 +585,27 @@ class Ship
       a.setSlider(roc_thrust);
       a.run(tick);
     }
+    
+    // Weapon parameters
+    float wpn_shoot = constrain(firingTime / firingTimeMax,  0.0, 1.0);
+    float wpn_reload = constrain(reload / reloadTime,  0.0, 1.0);
+    
+    // Weapon shoot
+    Iterator it_wpn_shoot = animWeaponShoot.iterator();
+    while( it_wpn_shoot.hasNext() )
+    {
+      Animator a = (Animator) it_wpn_shoot.next();
+      a.setSlider(wpn_shoot);
+      a.run(tick);
+    }
+    // Weapon reload
+    Iterator it_wpn_reload = animWeaponReload.iterator();
+    while( it_wpn_reload.hasNext() )
+    {
+      Animator a = (Animator) it_wpn_reload.next();
+      a.setSlider(wpn_reload);
+      a.run(tick);
+    }
   }
   // doAnimation
   
@@ -618,6 +650,10 @@ class Ship
         // Power up cloak
         cloakActivation = min(cloakActivation + cloakActivationSpeed * tick, 1.0);
       }
+      
+      // Clamp down weapon activation
+      firingTime = firingTimeMax;
+      reload = 0;
     }
     else
     {
@@ -673,21 +709,22 @@ class Ship
   public void fireWeapon()
   // Perform aggressive emission
   {
-    if(reloadTime < reload  &&  cloakActivation == 0  && !exploding)
+    //if(reloadTime < reload  &&  cloakActivation == 0  && !exploding)
+    if(cloakActivation == 0.0  &&  !exploding)
     {
       // Weapon is primed
-      shooting = true;
+      //shooting = true;
       reload = 0;
-      firingTime = 0;
+      //firingTime = 0;
       // Create and emit munition
       Ship munition = null;
       PVector pos = root.getWorldPosition().get();
       PVector targetPos = target.getWorldPosition().get();
+      float rot = root.getWorldRotation();
       switch(munitionType)
       {
         case MUNITION_BULLET_A:
           // Set straight-ahead target
-          float rot = root.getWorldRotation();
           targetPos = pos.get();
           targetPos.add(radius * 16.0 * cos(rot), radius * 16.0 * sin(rot), 0.0);
           munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_BULLET_A, team);
@@ -695,12 +732,21 @@ class Ship
         case MUNITION_MISSILE_A:
           munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_MISSILE_A, team);
           break;
+        case MUNITION_BULLET_B:
+          // Set straight-ahead target
+          targetPos = pos.get();
+          targetPos.add(radius * 16.0 * cos(rot), radius * 16.0 * sin(rot), 0.0);
+          munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_BULLET_B, team);
+          break;
+        case MUNITION_MISSILE_B:
+          munition = shipManager.makeShip(pos, targetPos, ShipManager.MODEL_MISSILE_B, team);
+          break;
         default:
           break;
       }
       
       // Elevate excitement
-      excitement = 1.0;
+      //excitement = 1.0;
     }
   }
   // fireWeapon
@@ -913,6 +959,14 @@ class Ship
   public void configureAsPreyA()
   // Configures the ship as a Prey-A model
   {
+    colExplosion = color(127, 255, 191, 255);
+    color colDrive = color(127, 191, 255, 255);
+    
+    // Setup explosion particles
+    explosionTemplates.clear();
+    setupExplosionTemplatesPyroAndDebris(colExplosion);
+    
+    
     // Create the hull
     // This will later be rotated, but is for now held on the origin
     // This makes further construction far more logical
@@ -921,8 +975,6 @@ class Ship
     Sprite spriteHull = new Sprite(hull, ship_preya_inner_diff, 16,16, -0.5,-0.5);
     spriteHull.setSpecular(ship_preya_inner_diff);
     spriteHull.setNormal(ship_preya_inner_norm);
-    
-    color colDrive = color(128, 192, 255, 255);
     
     
     // SUPERSTRUCTURE
@@ -1262,6 +1314,18 @@ class Ship
     breakpoints.add(motor3Rdag);
     
     
+    // Laser turret
+    DAGTransform ltHost = new DAGTransform(0,0,0, -HALF_PI, 1,1,1);    // Rotated to face forward
+    ltHost.setParent(bridgeDag);
+    breakpoints.add(ltHost);
+    // Config turret
+    Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    laserTurret.configureAsTurretBulletA();
+    addSlave(laserTurret);
+    laserTurret.getRoot().snapTo(ltHost);
+    laserTurret.getRoot().setParent(ltHost);
+    
+    
     
     // FINALISE
     boltToRoot(hull);
@@ -1301,6 +1365,12 @@ class Ship
     //cloakOnInactive = true;
     colExplosion = color(255,222,192,255);
     
+    color colDrive = color(255,222,192, 255);
+    
+    // Setup explosion particles
+    explosionTemplates.clear();
+    setupExplosionTemplatesPyroAndDebris(colExplosion);
+    
     
     // Create the hull
     // This will later be rotated, but is for now held on the origin
@@ -1311,7 +1381,6 @@ class Ship
     spriteHull.setNormal(ship_preya_inner_norm);
     spriteHull.setWarp(ship_preya_inner_warp);
     
-    color colDrive = color(255,222,192, 255);
     
     
     // SUPERSTRUCTURE
@@ -1567,7 +1636,7 @@ class Ship
     breakpoints.add(mtHost);
     // Config turret
     Ship missileTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
-    missileTurret.configureAsTurretMissileA();
+    missileTurret.configureAsTurretMissileB();
     addSlave(missileTurret);
     missileTurret.getRoot().snapTo(mtHost);
     missileTurret.getRoot().setParent(mtHost);
@@ -1578,7 +1647,7 @@ class Ship
     breakpoints.add(ltHost);
     // Config turret
     Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
-    laserTurret.configureAsTurretBulletA();
+    laserTurret.configureAsTurretBulletB();
     addSlave(laserTurret);
     laserTurret.getRoot().snapTo(ltHost);
     laserTurret.getRoot().setParent(ltHost);
@@ -1608,7 +1677,23 @@ class Ship
   
   
   public void configureAsTurretMissileA()
-  // This shoots missile-A munitions
+  // This shoots missile-A munitions in cool plasma
+  {
+    configureAsTurretMissile( color(127,255,192,255) );
+  }
+  // configureAsTurretMissileA
+  
+  
+  public void configureAsTurretMissileB()
+  // This shoots missile-B munitions in warm plasma
+  {
+    configureAsTurretMissile( color(255,191,127,255) );
+    munitionType = MUNITION_MISSILE_B;
+  }
+  // configureAsTurretMissileA
+  
+  
+  public void configureAsTurretMissile(color col)
   {
     // Set military behaviour
     navMode = NAV_MODE_TURRET;
@@ -1621,6 +1706,7 @@ class Ship
     firingTimeMax = 20;
     reloadTime = 20;
     turretAcquisitionArc = 0.2;
+    colExplosion = col;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1634,11 +1720,28 @@ class Ship
     // Finalise
     boltToRoot(hull);
   }
-  // configureAsTurretMissileA
+  // configureAsTurretMissile
   
   
   public void configureAsTurretBulletA()
-  // This shoots bullet-A munitions
+  // This shoots bullet-A munitions, green energy bolts
+  {
+    configureAsTurretBullet( color(127,255,191,255) );
+  }
+  // configureAsTurretBulletA
+  
+  
+  public void configureAsTurretBulletB()
+  // This shoots bullet-B munitions, hot plasma bolts
+  {
+    configureAsTurretBullet( color(255,191,127,255) );
+    munitionType = MUNITION_BULLET_B;
+  }
+  // configureAsTurretBulletA
+  
+  
+  public void configureAsTurretBullet(color col)
+  // This shoots bullets
   {
     // Set military behaviour
     navMode = NAV_MODE_TURRET;
@@ -1648,9 +1751,10 @@ class Ship
     turnDrag = 0.95;
     wrap = false;  // Parent vehicle should handle this
     munitionType = MUNITION_BULLET_A;
-    firingTimeMax = 10;
+    firingTimeMax = 20.0;
     reloadTime = 50.0;
     turretAcquisitionArc = 0.2;
+    colExplosion = col;
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
@@ -1661,28 +1765,80 @@ class Ship
     hullS.setWarp(ship_preya_turret_warp);
     sprites.add(hullS);
     
+    // Shooting animation
+    DAGTransform muzAuraDag = new DAGTransform(0,0,0, 0, 1,1,1);
+    muzAuraDag.snapTo(hull);
+    muzAuraDag.setParent(hull);
+    muzAuraDag.moveWorld(0.0, -1.0, 0.0);
+    ParticleEmitter muzAuraEm = new ParticleEmitter(muzAuraDag, null, 2.0);
+    emitters.add(muzAuraEm);
+    
+    // Setup shooter animator slider
+    muzAuraDag.useSX = true;
+    DAGTransform muzAuraDag_key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    DAGTransform muzAuraDag_key2 = new DAGTransform(0,0,0, 0, 0,1,1);
+    Animator muzAuraDag_anim = muzAuraDag.makeSlider( muzAuraDag_key1, muzAuraDag_key2 );
+    animWeaponShoot.add( muzAuraDag_anim );
+    
+    // Setup charge particles
+    PVector vel = new PVector(0,0,0);
+    float spin = 0.0;
+    float ageMax = 40;
+    float disperseSize = -1.0;
+    
+    Sprite pCharge1S = new Sprite(null, null, 8.0,8.0, -0.5,-0.5);
+    pCharge1S.setEmissive(fx_ray1);
+    pCharge1S.masterTintEmit = colExplosion;
+    Particle pCharge1P = new Particle(null, pCharge1S, vel, spin, ageMax);
+    pCharge1P.fadeEmit = Particle.FADE_LINEAR_INV;
+    pCharge1P.disperseSize = disperseSize;  // Because dispersion is from a base of 1.0
+    muzAuraEm.addTemplate( pCharge1P );
+    
+    Sprite pCharge2S = new Sprite(null, null, 8.0,8.0, -0.5,-0.5);
+    pCharge2S.setEmissive(fx_ray2);
+    pCharge2S.masterTintEmit = colExplosion;
+    Particle pCharge2P = new Particle(null, pCharge2S, vel, spin, ageMax);
+    pCharge2P.fadeEmit = Particle.FADE_INOUT_SMOOTH;
+    pCharge2P.disperseSize = disperseSize;  // Because dispersion is from a base of 1.0
+    muzAuraEm.addTemplate( pCharge2P );
+    
     // Finalise
     boltToRoot(hull);
   }
-  // configureAsTurretBulletA
+  // configureAsTurretBullet
   
   
   public void configureAsMissileA()
   // A basic missile, with missile behaviours
   {
+    configureAsMissile( color(127,255,191,255) );
+  }
+  // configureAsMissileA
+  
+  
+  public void configureAsMissileB()
+  {
+    configureAsMissile( color(255,191,127,255) );
+  }
+  // configureAsMissileB
+  
+  
+  public void configureAsMissile(color col)
+  {
     // Set homing behaviour
     navMode = NAV_MODE_HOMING;
-    maxVel = 0.6;
-    maxTurn = 0.04;
+    maxVel = 1.2;
+    maxTurn = 0.06;
     turnThrust = 0.002;
     turnDrag = 0.95;
     thrust = 0.02;
     radius = 3.0;
     destinationRadius = 1.0;
+    ageMax = 150;
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
     wrap = false;
-    colExplosion = color(255, 192, 127, 255);
+    colExplosion = col;
     
     // Setup explosion templates
     explosionTemplates.clear();
@@ -1700,7 +1856,7 @@ class Ship
     // Maneuver jets
     
     // Left jet
-    DAGTransform jetLDag = new DAGTransform(0.0, -1.0, 0.0,  -PI / 3.0,  1,1,1);
+    DAGTransform jetLDag = new DAGTransform(0.0, -1.0, 0.0,  -HALF_PI,  1,1,1);
     jetLDag.setParent(hull);
     jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
     /* Setup some graphics */
@@ -1715,7 +1871,7 @@ class Ship
     animTurnRight.add( jetLDag_anim );
     
     // Right jet
-    DAGTransform jetRDag = new DAGTransform(0.0, -1.0, 0.0,  PI / 3.0,  1,1,1);
+    DAGTransform jetRDag = new DAGTransform(0.0, -1.0, 0.0,  HALF_PI,  1,1,1);
     jetRDag.setParent(hull);
     jetRDag.useSX = true;  jetRDag.useSY = true;  jetRDag.useSZ = true;
     /* Setup some graphics */
@@ -1735,7 +1891,7 @@ class Ship
       emitters.add(em1);
       
       // Drive light 1
-      Light em1Light = new Light(em1Host, 0.5, colExplosion);
+      Light em1Light = new Light(em1Host, 0.75, colExplosion);
       lights.add(em1Light);
       
       // PARTICLES
@@ -1746,7 +1902,7 @@ class Ship
       s.masterTintEmit = colExplosion;
       PVector vel = new PVector(0.2, 0, 0);
       float spin = 0;
-      float ageMax = 15;
+      float ageMax = 30;
       Particle p = new Particle(dag, s, vel, spin, ageMax);
       p.streak = true;
       p.aimAlongMotion = true;
@@ -1757,8 +1913,8 @@ class Ship
       // Puffs
       PVector puffVel = new PVector(0.08, 0, 0);
       float puffSpin = 0.16;
-      float puffDisperseSize = 2.0;
-      float puffAgeMax = 30;
+      float puffDisperseSize = 3.0;
+      float puffAgeMax = 60;
       PVector pr = new PVector(0.5, 0.5);
       color puffTint = color(colExplosion, 64);
       
@@ -1809,11 +1965,26 @@ class Ship
     // Finalise
     boltToRoot(hull);
   }
-  // configureAsMissileA
+  // configureAsMissile
   
   
   public void configureAsBulletA()
-  // A bullet
+  // A cold bullet
+  {
+    configureAsBullet( color(127,255,191,255) );
+  }
+  // configureAsBulletA
+  
+  
+  public void configureAsBulletB()
+  // A warm bullet
+  {
+    configureAsBullet( color(255,191,127,255) );
+  }
+  // configureAsBulletB
+  
+  
+  public void configureAsBullet(color col)
   {
     // Set bullet behaviour
     navMode = NAV_MODE_BULLET;
@@ -1830,7 +2001,7 @@ class Ship
     dismemberTimerInterval = 1.0;
     ageMax = 90;
     wrap = false;
-    colExplosion = color(255, 192, 127, 255);
+    colExplosion = col;
     
     // Setup explosion templates
     explosionTemplates.clear();
@@ -1845,7 +2016,7 @@ class Ship
     bulletMain.setEmissive(fx_streak);
     bulletMain.masterTintEmit = colExplosion;
     sprites.add(bulletMain);
-    // Highlight
+    // Highlight, always yellow
     Sprite bulletHighlight = new Sprite(hull, null, 0.5, 3.0, -0.5,-0.5);
     bulletHighlight.setEmissive(fx_streak);
     bulletHighlight.masterTintEmit = color(255,255,192);
@@ -1858,7 +2029,7 @@ class Ship
     // Finalise
     boltToRoot(hull);
   }
-  // configureAsBulletA
+  // configureAsBullet
   
   
   public void boltToRoot(DAGTransform hull)
@@ -1885,6 +2056,15 @@ class Ship
   // snapToFaceTarget
   
   
+  private void setupExplosionTemplatesPyroAndDebris(color col)
+  {
+    for(int i = 0;  i < 32;  i++)
+    {    setupExplosionTemplatesPyrotechnic(col);    }
+    setupExplosionTemplatesDebris(col);
+  }
+  // setupExplosionTemplatesPyroAndDebris
+  
+  
   private void setupExplosionTemplatesPyrotechnic(color tintCol)
   {
     // Does NOT clear the templates - this can be combined with other template queues.
@@ -1896,7 +2076,7 @@ class Ship
     s.masterTintEmit = tintCol;
     PVector vel = new PVector(1.2, 0, 0);
     float spin = 0;
-    float ageMax = 30;
+    float ageMax = 60;
     Particle p = new Particle(dag, s, vel, spin, ageMax);
     p.streak = true;
     p.aimAlongMotion = true;
@@ -1981,6 +2161,66 @@ class Ship
       explosionTemplates.add(p);
   }
   // setupExplosionTemplatesPyrotechnic
+  
+  
+  public void setupExplosionTemplatesDebris(color col)
+  {
+    ArrayList assetsDiff = new ArrayList();
+    ArrayList assetsNorm = new ArrayList();
+    
+    // Assemble diffuse assets
+    assetsDiff.add(debris_01_diff);    assetsDiff.add(debris_02_diff);
+    assetsDiff.add(debris_03_diff);    assetsDiff.add(debris_04_diff);
+    assetsDiff.add(debris_05_diff);    assetsDiff.add(debris_06_diff);
+    assetsDiff.add(debris_07_diff);    assetsDiff.add(debris_08_diff);
+    assetsDiff.add(debris_09_diff);    assetsDiff.add(debris_10_diff);
+    assetsDiff.add(debris_11_diff);    assetsDiff.add(debris_12_diff);
+    assetsDiff.add(debris_13_diff);    assetsDiff.add(debris_14_diff);
+    assetsDiff.add(debris_15_diff);    assetsDiff.add(debris_16_diff);
+    assetsDiff.add(debris_17_diff);    assetsDiff.add(debris_18_diff);
+    assetsDiff.add(debris_19_diff);    assetsDiff.add(debris_20_diff);
+    assetsDiff.add(debris_21_diff);    assetsDiff.add(debris_22_diff);
+    assetsDiff.add(debris_23_diff);    assetsDiff.add(debris_24_diff);
+    
+    // Assemble normal assets
+    assetsNorm.add(debris_01_norm);    assetsNorm.add(debris_02_norm);
+    assetsNorm.add(debris_03_norm);    assetsNorm.add(debris_04_norm);
+    assetsNorm.add(debris_05_norm);    assetsNorm.add(debris_06_norm);
+    assetsNorm.add(debris_07_norm);    assetsNorm.add(debris_08_norm);
+    assetsNorm.add(debris_09_norm);    assetsNorm.add(debris_10_norm);
+    assetsNorm.add(debris_11_norm);    assetsNorm.add(debris_12_norm);
+    assetsNorm.add(debris_13_norm);    assetsNorm.add(debris_14_norm);
+    assetsNorm.add(debris_15_norm);    assetsNorm.add(debris_16_norm);
+    assetsNorm.add(debris_17_norm);    assetsNorm.add(debris_18_norm);
+    assetsNorm.add(debris_19_norm);    assetsNorm.add(debris_20_norm);
+    assetsNorm.add(debris_21_norm);    assetsNorm.add(debris_22_norm);
+    assetsNorm.add(debris_23_norm);    assetsNorm.add(debris_24_norm);
+    
+    // Set parameters
+    PVector pVel = new PVector(0.4, 0.0,0.0);
+    float pSpin = 0.03;
+    float pAgeMax = 300;
+    
+    // Make sprites
+    Iterator iDiff = assetsDiff.iterator();
+    Iterator iNorm = assetsNorm.iterator();
+    while( iDiff.hasNext() )
+    {
+      PImage diff = (PImage) iDiff.next();
+      PImage norm = (PImage) iNorm.next();
+      float res = diff.width / 24.0;
+      Sprite s = new Sprite(null, diff, res,res, -0.5,-0.5);
+      s.setNormal(norm);
+      s.setSpecular(diff);
+      Particle p = new Particle(null, s, pVel, pSpin, pAgeMax);
+      p.disperseSize = -0.5;
+      p.fadeDiff = Particle.FADE_CUBEROOT;
+      p.fadeNorm = Particle.FADE_NIL;
+      p.fadeSpec = Particle.FADE_CUBEROOT;
+      explosionTemplates.add(p);
+    }
+  }
+  // setupExplosionTemplatesDebris
   
   
   public DAGTransform getRoot()
