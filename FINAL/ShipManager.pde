@@ -13,6 +13,7 @@ class ShipManager
   public static final int MODEL_BULLET_A = 21;
   public static final int MODEL_MISSILE_B = 22;
   public static final int MODEL_BULLET_B = 23;
+  public static final int MODEL_DUST = 30;
   
   ShipManager()
   {
@@ -82,6 +83,9 @@ class ShipManager
       case MODEL_BULLET_B:
         ship.configureAsBulletB();
         break;
+      case MODEL_DUST:
+        ship.configureAsDust();
+        break;
       default:
         break;
     }
@@ -124,7 +128,7 @@ class ShipManager
     {
       Ship s = (Ship) i.next();
       float d = s.getRoot().getWorldPosition().dist(pos);
-      if( d < dCandidate  &&  !s.equals(ship) )
+      if( d < dCandidate  &&  !s.equals(ship)  &&  s.targetable )
       {
         sCandidate = s;
         dCandidate = d;

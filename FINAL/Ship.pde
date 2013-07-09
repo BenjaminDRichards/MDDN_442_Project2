@@ -28,12 +28,15 @@ class Ship
   public static final int NAV_MODE_TURRET = 4;
   public static final int NAV_MODE_BULLET = 5;
   public static final int NAV_MODE_EXTERNAL = 6;
+  public static final int NAV_MODE_DRIFT = 7;
   
   // Animation data
   ArrayList animTurnLeft, animTurnRight, animThrust, animWeaponShoot, animWeaponReload, anim;
   ArrayList particles, emitters;
   
   // Destructural data
+  float hitpoints, hitpointsMax, hitpointsRegen;
+  float damageOnHit;
   private ArrayList breakpoints;  // Children of root that might break away during an explosion
   private ArrayList fragments;    // Pieces that break away from root
   private boolean exploding;
@@ -107,19 +110,23 @@ class Ship
     turnDrag = 0.99;
     turnBrake = turnThrust;
     wrap = true;
-    float margin = 1.15;
+    float margin = 1.1;
     float xDimension = 100.0 * margin * width / height;
     float yDimension = 100.0 * margin;
     wrapX = new PVector(-0.5 * xDimension, 0.5 * xDimension, xDimension);  // Low bound, high bound, range
     wrapY = new PVector(-0.5 * yDimension + 50, 0.5 * yDimension + 50, yDimension);  // Low bound, high bound, range
     
     // Destruction data
+    hitpoints = 0.0;
+    hitpointsMax = 1.5;
+    hitpointsRegen = 0.002;
+    damageOnHit = 1.0;        // This is only used for munitions, not the ships that fire them.
     breakpoints = new ArrayList();
     fragments = new ArrayList();
     exploding = false;
     pleaseRemove = false;
     explodeTimer = 0;
-    explodeTimerInterval = 20;
+    explodeTimerInterval = 30;
     dismemberTimer = 0;
     dismemberTimerInterval = 10;
     colExplosion = color(127, 255, 192, 255);
@@ -185,12 +192,10 @@ class Ship
     // Operate cloaking device
     doCloaking(tick);
     
-    // Check explosions
-    if(exploding)
-      doExploding(tick);
-    
     // Do aging and time management
     age += tick;
+    
+    // Weapon cycling
     if(!shooting)
     {      reload = constrain(reload + tick,  0.0, reloadTime);    }
     else
@@ -202,6 +207,17 @@ class Ship
         shooting = false;
       }
     }
+    
+    // Hit point management
+    hitpoints = max(hitpoints - hitpointsRegen, 0.0);
+    if(hitpointsMax <= hitpoints)
+    {
+      startExploding();
+    }
+    
+    // Check explosions
+    if(exploding)
+      doExploding(tick);
     
     // Do slaves
     Iterator i = slaves.iterator();
@@ -363,6 +379,10 @@ class Ship
       case NAV_MODE_EXTERNAL:
         target.setWorldPosition(externalVector.x, externalVector.y, 0);
         break;
+      case NAV_MODE_DRIFT:
+        target.snapTo(root);
+        target.moveLocal(destinationRadius * 2.0, random(-1,1) * 0.1, 0.0);
+        break;
       default:
         break;
     }
@@ -497,7 +517,7 @@ class Ship
           // Kill yourself
           startExploding();
           // Kill the enemy too
-          enemy.takeHit();
+          enemy.takeHit(damageOnHit);
         }
       }
       // Time out
@@ -515,22 +535,16 @@ class Ship
   {
     if(!exploding)
     {
-      Iterator i = shipManager.ships.iterator();
-      while( i.hasNext() )
+      Ship enemy = shipManager.getNearestEnemyTo(root.getWorldPosition(), team);
+      if(enemy != null  
+        &&  enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < enemy.radius + radius)
       {
-        Ship enemy = (Ship) i.next();
-        if(enemy.team == team)  continue;  // Don't hit friendlies
-        if(enemy.getRoot().getWorldPosition().dist( root.getWorldPosition() ) < enemy.radius + radius)
-        {
-          // That is, the two are close enough to collide
-          // Kill yourself
-          startExploding();
-          // Kill the enemy too
-          enemy.takeHit();
-          // Slow down, you might hit something else
-          rateVel = 0;
-          break;
-        }
+        // Kill yourself
+        startExploding();
+        // Kill the enemy too
+        enemy.takeHit(damageOnHit);
+        // Slow down, you might hit something else
+        rateVel = 0;
       }
       
       // Time out
@@ -680,7 +694,9 @@ class Ship
     {
       float aleph = 1 - cloakActivation;
       float baseAlpha = 3 * pow(aleph, 2) - 2 * pow(aleph, 3);
-      float warpBase = aleph < 0.5  ?  aleph * 2  :  2 - aleph * 2;
+      float warpBase = aleph < 0.5
+        ?  aleph * 2
+        :  2 - aleph * 2;
       float warpAlpha = 3 * pow(warpBase, 2) - 2 * pow(warpBase, 3);
       
       // Prevent total fade
@@ -688,7 +704,6 @@ class Ship
       warpAlpha = max(warpAlpha, cloakActivation / 64.0);
       
       // Do something absurd to the warp normal tint
-      // This might not currently work, due to tint-disabled warp rendering
       float warpPhase = aleph * TWO_PI * 4.0;
       PVector wd = new PVector( 1.0 - sin(warpPhase ),
         1.0 - sin(warpPhase * TWO_PI / 3.0), 1.0 - sin(warpPhase * TWO_PI * 2.0 / 3.0) );
@@ -752,12 +767,14 @@ class Ship
   // fireWeapon
   
   
-  public void takeHit()
+  public void takeHit(float damage)
   // What to do if you get hit
   {
     if(!invulnerable)
     {
-      startExploding();
+      // I'm using additive HP here because I think it makes more sense.
+      // HP starts at 0 and you don't want to lose any.
+      hitpoints += damage;
     }
   }
   // takeHit
@@ -858,12 +875,12 @@ class Ship
       PVector sep = PVector.sub(breakpoint.getWorldPosition(), root.getWorldPosition());
       sep.normalize();
       PVector randDir = PVector.random3D();
-      randDir.mult( 3 );
+      randDir.mult( 8.0 );
       sep.add(randDir);
       float tumble = random(-1, 1) * 0.02;
       // Normalize and multiply by an acceptable velocity
       sep.normalize();
-      sep.mult( random(0.002) );
+      sep.mult( random(0.08) );
       // Create animation
       PVector fragmentVel = new PVector(sep.x, sep.y, sep.z);
       PVector rootVel = PVector.fromAngle( root.getWorldRotation() );
@@ -918,7 +935,7 @@ class Ship
     Particle pShock = new Particle(dagShock, sShock, new PVector(0,0,0), 0, 16);
     particles.add(pShock);
     pShock.disperse = true;
-    pShock.disperseSize = 24.0;
+    pShock.disperseSize = 32.0;
     pShock.fadeWarp = Particle.FADE_CUBE;
     
     // Create temporary light source
@@ -1009,7 +1026,7 @@ class Ship
     DAGTransform driveLightDag = new DAGTransform(0,0,0, 0, 1,1,1);
     driveLightDag.snapTo(driveDag);
     driveLightDag.setParent(driveDag);
-    driveLightDag.moveWorld(0, 4, 0);
+    driveLightDag.moveWorld(0, 3, 0);
     driveLightDag.useSX = true;
     Light driveLight = new Light( driveLightDag, 0.5, colDrive );
     lights.add(driveLight);
@@ -1022,14 +1039,16 @@ class Ship
     // Style exhaust shimmer particle
     DAGTransform exhaustPDag = new DAGTransform(0,0,0, 0, 1,1,1);
     Sprite exhaustS = new Sprite(exhaustPDag, null, 2, 2, -0.5, -0.5);
-    exhaustS.setWarp(fx_wrinkle64);
+    exhaustS.setWarp(fx_wrinkle256);
+    exhaustS.masterTintWarp = color(255,96);
     PVector exhaustVel = new PVector(0.05, 0, 0);
     float exhaustSpin = 0.02;
-    float exhaustAgeMax = 180;
+    float exhaustAgeMax = 120;
     Particle exhaustP = new Particle(exhaustPDag, exhaustS, exhaustVel, exhaustSpin, exhaustAgeMax);
     exhaustP.fadeWarp = Particle.FADE_INOUT_SMOOTH;
     // Emitter 1
     ParticleEmitter em1 = new ParticleEmitter(driveLightDag, exhaustP, 0.1);
+    em1.ageMin = 0.5;
     emitters.add(em1);
     
     
@@ -1316,7 +1335,10 @@ class Ship
     
     // Laser turret
     DAGTransform ltHost = new DAGTransform(0,0,0, -HALF_PI, 1,1,1);    // Rotated to face forward
-    ltHost.setParent(bridgeDag);
+    ltHost.snapTo(prowDag);
+    ltHost.setParent(prowDag);
+    ltHost.rotate(-HALF_PI);    // Restore after snap
+    ltHost.moveWorld(0.0, 2.0, 0.0);
     breakpoints.add(ltHost);
     // Config turret
     Ship laserTurret = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
@@ -1418,7 +1440,7 @@ class Ship
     DAGTransform driveLightDag = new DAGTransform(0,0,0, 0, 1,1,1);
     driveLightDag.snapTo(driveDag);
     driveLightDag.setParent(driveDag);
-    driveLightDag.moveWorld(0, 6.0, 0);
+    driveLightDag.moveWorld(0, 9.0, 0);
     driveLightDag.useSX = true;
     Light driveLight = new Light( driveLightDag, 1.0, colDrive );
     lights.add(driveLight);
@@ -1431,14 +1453,16 @@ class Ship
     // Style exhaust shimmer particle
     DAGTransform exhaustPDag = new DAGTransform(0,0,0, 0, 1,1,1);
     Sprite exhaustS = new Sprite(exhaustPDag, null, 2, 2, -0.5, -0.5);
-    exhaustS.setWarp(fx_wrinkle64);
+    exhaustS.setWarp(fx_wrinkle256);
+    exhaustS.masterTintWarp = color(255,96);
     PVector exhaustVel = new PVector(0.05, 0, 0);
     float exhaustSpin = 0.02;
-    float exhaustAgeMax = 180;
+    float exhaustAgeMax = 120;
     Particle exhaustP = new Particle(exhaustPDag, exhaustS, exhaustVel, exhaustSpin, exhaustAgeMax);
     exhaustP.fadeWarp = Particle.FADE_INOUT_SMOOTH;
     // Emitter 1
     ParticleEmitter em1 = new ParticleEmitter(driveLightDag, exhaustP, 0.1);
+    em1.ageMin = 0.5;
     emitters.add(em1);
     
     
@@ -1704,14 +1728,16 @@ class Ship
     wrap = false;  // Parent vehicle should handle this
     munitionType = MUNITION_MISSILE_A;
     firingTimeMax = 20;
-    reloadTime = 20;
+    reloadTime = 50;
     turretAcquisitionArc = 0.2;
     colExplosion = col;
+    
+    setupExplosionTemplatesPyroAndDebris(colExplosion);
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 8,8, -0.5,-0.5);
+    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 12,12, -0.5,-0.5);
     hullS.setSpecular(ship_preya_turret_diff);
     hullS.setNormal(ship_preya_turret_norm);
     hullS.setWarp(ship_preya_turret_warp);
@@ -1756,10 +1782,12 @@ class Ship
     turretAcquisitionArc = 0.2;
     colExplosion = col;
     
+    setupExplosionTemplatesPyroAndDebris(colExplosion);
+    
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     /* Setup some graphics */
-    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 8,8, -0.5,-0.5);
+    Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 12,12, -0.5,-0.5);
     hullS.setSpecular(ship_preya_turret_diff);
     hullS.setNormal(ship_preya_turret_norm);
     hullS.setWarp(ship_preya_turret_warp);
@@ -1827,14 +1855,15 @@ class Ship
   {
     // Set homing behaviour
     navMode = NAV_MODE_HOMING;
-    maxVel = 1.2;
+    maxVel = 0.3;
     maxTurn = 0.06;
     turnThrust = 0.002;
     turnDrag = 0.95;
-    thrust = 0.02;
+    thrust = 0.01;
     radius = 3.0;
     destinationRadius = 1.0;
-    ageMax = 150;
+    hitpointsMax = 0.1;
+    ageMax = 360;
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
     wrap = false;
@@ -1887,7 +1916,7 @@ class Ship
     {
       DAGTransform em1Host = new DAGTransform(0, 0.8, 0,  0,  1,1,1);
       em1Host.setParent(hull);
-      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 16.0);
+      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 8.0);
       emitters.add(em1);
       
       // Drive light 1
@@ -1902,63 +1931,59 @@ class Ship
       s.masterTintEmit = colExplosion;
       PVector vel = new PVector(0.2, 0, 0);
       float spin = 0;
-      float ageMax = 30;
+      float ageMax = 20;
       Particle p = new Particle(dag, s, vel, spin, ageMax);
       p.streak = true;
       p.aimAlongMotion = true;
       p.disperse = false;
-      //for(int i = 0;  i < 2;  i++)
+      for(int i = 0;  i < 2;  i++)
         em1.addTemplate(p);
       
       // Puffs
-      PVector puffVel = new PVector(0.08, 0, 0);
-      float puffSpin = 0.16;
-      float puffDisperseSize = 3.0;
-      float puffAgeMax = 60;
-      PVector pr = new PVector(0.5, 0.5);
+      PVector puffVel = new PVector(0.04, 0, 0);
+      float puffSpin = 0.04;
+      float puffDisperseSize = 12.0;
+      float puffAgeMax = 30;
+      PVector pr = new PVector(0.25, 0.25);
       color puffTint = color(colExplosion, 64);
       
       // Puff 1
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
-      s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
+      s = new Sprite(dag, fx_puff1, pr.x, pr.y, -0.5,-0.5);
+      s.setNormal(fx_puff1norm);
       s.setEmissive(fx_puff1);
       s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
+      p.fadeEmit = Particle.FADE_SQRT;
+      p.fadeDiff = Particle.FADE_CUBEROOT;
+      p.fadeNorm = Particle.FADE_CUBEROOT;
       em1.addTemplate(p);
       
       // Puff 2
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
-      s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
+      s = new Sprite(dag, fx_puff1, pr.x, pr.y, -0.5,-0.5);
+      s.setNormal(fx_puff1norm);
       s.setEmissive(fx_puff2);
       s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
+      p.fadeEmit = Particle.FADE_SQRT;
+      p.fadeDiff = Particle.FADE_CUBEROOT;
+      p.fadeNorm = Particle.FADE_CUBEROOT;
       em1.addTemplate(p);
       
       // Puff 3
       dag = new DAGTransform(0,0,0, 0, 1,1,1);
-      s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
+      s = new Sprite(dag, fx_puff1, pr.x, pr.y, -0.5,-0.5);
+      s.setNormal(fx_puff1norm);
       s.setEmissive(fx_puff3);
       s.masterTintEmit = puffTint;
       p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
       p.disperseSize = puffDisperseSize;
-      em1.addTemplate(p);
-      
-      
-      // Spatters
-      PVector spatVel = new PVector(0, 0, 0);
-      float spatSpin = 0.01;
-      float spatDisperseSize = 4.0;
-      float spatAgeMax = 30;
-      
-      // Spatter
-      dag = new DAGTransform(0,0,0, 0, 1,1,1);
-      s = new Sprite(dag, null, pr.x, pr.y, -0.5,-0.5);
-      s.setEmissive(fx_spatter);
-      s.masterTintEmit = puffTint;
-      p = new Particle(dag, s, spatVel, spatSpin, spatAgeMax);
-      p.disperseSize = spatDisperseSize;
+      p.fadeEmit = Particle.FADE_SQRT;
+      p.fadeDiff = Particle.FADE_CUBEROOT;
+      p.fadeNorm = Particle.FADE_CUBEROOT;
       em1.addTemplate(p);
     }
     
@@ -1997,6 +2022,7 @@ class Ship
     drag = 1.0;  // No friction
     brake = 0.0;
     targetable = false;
+    hitpointsMax = 0.1;
     explodeTimerInterval = 1.0;
     dismemberTimerInterval = 1.0;
     ageMax = 90;
@@ -2030,6 +2056,41 @@ class Ship
     boltToRoot(hull);
   }
   // configureAsBullet
+  
+  
+  public void configureAsDust()
+  {
+    navMode = NAV_MODE_DRIFT;
+    maxVel = 0.01;
+    maxTurn = 0.0001;
+    thrust = 0.0001;
+    turnThrust = 0.00001;
+    turnDrag = 0.8;
+    drag = 1.0;
+    targetable = false;
+    invulnerable = true;
+    wrap = true;
+    
+    // Create geometry
+    DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
+    // Setup some graphics
+    Sprite s = new Sprite(hull, debris_dust, 50.0, 50.0, -0.5,-0.5);
+    s.masterTintDiff = color(255,255);
+    sprites.add(s);
+    
+    // Animate the hull to rotate
+    hull.useR = true;
+    float rotSpeed = random(-1,1) * 0.001;
+    DAGTransform key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+    DAGTransform key2 = new DAGTransform(0,0,0, rotSpeed, 1,1,1);
+    Animator rotAnim = hull.makeAnimator(key1, key2);
+    rotAnim.type = Animator.ANIM_LINEAR;
+    anim.add(rotAnim);
+    
+    // Finalise
+    boltToRoot(hull);
+  }
+  // configureAsDust
   
   
   public void boltToRoot(DAGTransform hull)
@@ -2071,7 +2132,7 @@ class Ship
     
     // Streak particle
     DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    Sprite s = new Sprite(dag, null, 0.35, 0.35, -0.5, -0.5);
+    Sprite s = new Sprite(dag, null, 0.25, 0.25, -0.5, -0.5);
     s.setEmissive(fx_streak);
     s.masterTintEmit = tintCol;
     PVector vel = new PVector(1.2, 0, 0);
@@ -2087,13 +2148,14 @@ class Ship
     }
     
     // Rays
+    float rayScale = 12.0;
     PVector rayVel = new PVector(0,0,0);
     float raySpin = 0.01;
     float rayAgeMax = 20;
     
     // Ray flare 1
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 8,8, -0.5,-0.5);
+    s = new Sprite(dag, null, rayScale,rayScale, -0.5,-0.5);
     s.setEmissive(fx_ray1);
     s.masterTintEmit = tintCol;
     p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
@@ -2101,7 +2163,7 @@ class Ship
     
     // Ray flare 2
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 8,8, -0.5,-0.5);
+    s = new Sprite(dag, null, rayScale,rayScale, -0.5,-0.5);
     s.setEmissive(fx_ray2);
     s.masterTintEmit = tintCol;
     p = new Particle(dag, s, rayVel, raySpin, rayAgeMax);
@@ -2109,13 +2171,14 @@ class Ship
     
     
     // Puffs
+    float puffScale = 1.0;
     PVector puffVel = new PVector(0.6, 0, 0);
     float puffSpin = 0.04;
     float puffAgeMax = 30;
     
     // Puff 1
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s = new Sprite(dag, null, puffScale,puffScale, -0.5,-0.5);
     s.setEmissive(fx_puff1);
     s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
@@ -2123,7 +2186,7 @@ class Ship
     
     // Puff 2
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s = new Sprite(dag, null, puffScale,puffScale, -0.5,-0.5);
     s.setEmissive(fx_puff2);
     s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
@@ -2131,7 +2194,7 @@ class Ship
     
     // Puff 3
     dag = new DAGTransform(0,0,0, 0, 1,1,1);
-    s = new Sprite(dag, null, 1,1, -0.5,-0.5);
+    s = new Sprite(dag, null, puffScale,puffScale, -0.5,-0.5);
     s.setEmissive(fx_puff3);
     s.masterTintEmit = tintCol;
     p = new Particle(dag, s, puffVel, puffSpin, puffAgeMax);
@@ -2197,9 +2260,9 @@ class Ship
     assetsNorm.add(debris_23_norm);    assetsNorm.add(debris_24_norm);
     
     // Set parameters
-    PVector pVel = new PVector(0.4, 0.0,0.0);
-    float pSpin = 0.03;
-    float pAgeMax = 300;
+    PVector pVel = new PVector(0.2, 0.0,0.0);
+    float pSpin = 0.02;
+    float pAgeMax = 900;
     
     // Make sprites
     Iterator iDiff = assetsDiff.iterator();
@@ -2208,7 +2271,7 @@ class Ship
     {
       PImage diff = (PImage) iDiff.next();
       PImage norm = (PImage) iNorm.next();
-      float res = diff.width / 24.0;
+      float res = diff.width / 32.0;
       Sprite s = new Sprite(null, diff, res,res, -0.5,-0.5);
       s.setNormal(norm);
       s.setSpecular(diff);

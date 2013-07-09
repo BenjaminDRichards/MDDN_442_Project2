@@ -64,7 +64,7 @@ class RenderManager
     
     // Prep bloom segment
     doBloom = false;
-    bloomScale = 8;
+    bloomScale = 4;
     float bloomMapScale = ry / (720.0 * bloomScale);
     int rBloomX = int( min(rx * bloomMapScale,  320.0) );
     int rBloomY = int( min(ry * bloomMapScale,  180.0) );
@@ -208,9 +208,9 @@ class RenderManager
     if(fullWarp != null)
     {
       bWarp.pushStyle();
-      bWarp.shader(shaderNorm);
+      //bWarp.shader(shaderNorm);    // This is only necessary for rotation, and we're not rotating
       //bWarp.tint(255, 192);
-      shaderNorm.set("worldAngle", 0.0);
+      //shaderNorm.set("worldAngle", 0.0);
       bWarp.image(fullWarp, 0,0, bWarp.width, bWarp.height);
       bWarp.popStyle();
     }
@@ -228,8 +228,7 @@ class RenderManager
       PVector offset = new PVector(s.coverageX * s.centerX, s.coverageY * s.centerY);
       // Render
       bWarp.pushStyle();
-      //bWarp.tint( s.getWarpTint() );
-      bWarp.tint(255, alpha(s.tintWarp) );
+      bWarp.tint( s.getWarpTint() );
       // SET SHADER
       bWarp.shader(shaderNorm);
       shaderNorm.set("worldAngle", ang);
@@ -258,6 +257,7 @@ class RenderManager
     {
       Light lg = (Light) iL.next();
       lg.render(bNormal, bSpecular, bLight, shaderLight);
+      bLight.resetShader();
     }
     // Finalise lights
     endPGL();

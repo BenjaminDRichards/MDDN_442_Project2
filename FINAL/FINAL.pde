@@ -11,8 +11,9 @@ import processing.video.*;
 
 
 Story story;
+boolean paused;
 
-ShipManager sceneShipManager;
+ShipManager sceneShipManager, dressageShipManager;
 Ship playerShip;
 int MIN_SHIP_COUNT = 8;
 
@@ -39,6 +40,7 @@ PImage tex_backdrop, tex_warpBackdrop;
 PImage fx_shockwave, fx_spatter, fx_streak;
 PImage fx_ray1, fx_ray2;
 PImage fx_puff1, fx_puff2, fx_puff3;
+PImage fx_puff1norm, fx_puff2norm, fx_puff3norm;
 PImage fx_jet;
 PImage fx_wrinkle8, fx_wrinkle64, fx_wrinkle256;
 
@@ -117,6 +119,8 @@ PImage debris_22_diff, debris_22_norm;
 PImage debris_23_diff, debris_23_norm;
 PImage debris_24_diff, debris_24_norm;
 
+PImage debris_dust;
+
 
 void setup()
 {
@@ -193,7 +197,7 @@ void setup()
   
   lightStencil = loadImage("images/lightStencil16.png");
   
-  tex_backdrop = loadImage("images/starscape2-suns.png");
+  tex_backdrop = loadImage("images/starscape3.png");
   tex_warpBackdrop = loadImage("images/windowGlass5.png");
   
   fx_shockwave = loadImage("images/effects/shockwave2.png");
@@ -204,6 +208,9 @@ void setup()
   fx_puff1 = loadImage("images/effects/puff1.png");
   fx_puff2 = loadImage("images/effects/puff2.png");
   fx_puff3 = loadImage("images/effects/puff3.png");
+  fx_puff1norm = loadImage("images/effects/puff1norm.png");
+  fx_puff2norm = loadImage("images/effects/puff2norm.png");
+  fx_puff3norm = loadImage("images/effects/puff3norm.png");
   fx_jet = loadImage("images/effects/jet.png");
   fx_wrinkle8 = loadImage("images/effects/wrinkle8.png");
   fx_wrinkle64 = loadImage("images/effects/wrinkle64.png");
@@ -332,30 +339,17 @@ void setup()
   debris_24_diff = loadImage("images/effects/debris/debris24_diff.png");
   debris_24_norm = loadImage("images/effects/debris/debris24_norm.png");
   
+  debris_dust = loadImage("images/effects/debris/SpaceDust.png");
+  
   
   // Setup story
   story = new Story();
   
+  // Setup pause management
+  paused = false;
+  
   
   // Setup draw buffer
-  /*
-  // Comply with screen aspect ratio
-  float outputResX = displayWidth;
-  float outputResY = displayHeight;
-  //float outputResX = 1920;
-  //float outputResY = 1080;
-  float expectedRatio = outputResX / outputResY;
-  float actualRatio = width / (float)height;
-  if(actualRatio < expectedRatio)    outputResX = outputResY * actualRatio;
-  else                               outputResY = outputResX / actualRatio;
-  if(width < outputResX)
-  {
-    // Downsize buffer
-    outputResX = width;
-    outputResY = height;
-  }
-  bufferRes = new PVector(outputResX, outputResY);
-  */
   bufferRes = new PVector(width, height);
   output = createGraphics( int(bufferRes.x), int(bufferRes.y), P2D);
   println("BUFFER RESOLUTION " + bufferRes);
@@ -383,6 +377,16 @@ void setup()
   }
   
   
+  // Populate set dressing
+  dressageShipManager = new ShipManager();
+  for(int i = 0;  i < 32;  i++)
+  {
+    PVector pos = new PVector(random(-60,60),  random(0,100),  0.0);
+    PVector targetPos = new PVector(random(-60,60),  random(0,100),  0.0);
+    Ship s = dressageShipManager.makeShip(pos, targetPos, ShipManager.MODEL_DUST, -1); 
+  }
+  
+  
   // Setup renderers
   hud = new Hud(output);
   
@@ -398,16 +402,16 @@ void setup()
   // Directional lights
   // Blue rim light from lower left
   DAGTransform dirlDag = new DAGTransform(0,0,0, 0, 1,1,1);  // Necessary evil
-  Light dirl = new Light(dirlDag, 0.2, color(191, 223, 255, 255));
-  dirl.makeDirectional( new PVector(0.2, -1, 0.2) );
+  Light dirl = new Light(dirlDag, 0.2, color(127, 191, 255, 255));
+  dirl.makeDirectional( new PVector(0.6, -1, 0.0) );
   sceneLights.add(dirl);
-  // Cool fill from above
-  dirl = new Light(dirlDag, 0.05, color(223,223,255, 255));
+  // Green fill from above
+  dirl = new Light(dirlDag, 0.05, color(191,255,191, 255));
   dirl.makeDirectional( new PVector(0.3, 1.0, -0.5) );
   sceneLights.add(dirl);
-  // Green rim
-  dirl = new Light(dirlDag, 0.5, color(223,255,223, 255));
-  dirl.makeDirectional( new PVector(-0.2, 0.5, 1.0) );
+  // Blue rim
+  dirl = new Light(dirlDag, 0.3, color(191,191,255, 255));
+  dirl.makeDirectional( new PVector(-0.5, 0.2, 1.0) );
   sceneLights.add(dirl);
   /*
   // RGB test lights
@@ -509,11 +513,17 @@ void draw()
   }
   
   
-  // Manage ships
-  
   // Smooth simulation
   float simStep = 0.5;
   float simSteps = ceil(story.tick / simStep);
+  
+  // Manage set dressing
+  for(int i = 0;  i < simSteps;  i++)
+  {
+    dressageShipManager.run(story.tick / simSteps);
+  }
+  
+  // Manage ships
   for(int i = 0;  i < simSteps;  i++)
   {
     sceneShipManager.run(story.tick / simSteps);
@@ -521,6 +531,7 @@ void draw()
   //sceneShipManager.run(story.tick);
   
   // Render
+  dressageShipManager.render(renderManager);
   sceneShipManager.render(renderManager);
   // Manage population
   if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
@@ -585,6 +596,20 @@ void draw()
 
 void keyPressed()
 {
+  if( key == ' ')
+  {
+    if(paused)
+    {
+      loop();
+      paused = false;
+    }
+    else
+    {
+      noLoop();
+      paused = true;
+    }
+  }
+  
   if( key == 'S'  ||  key == 's' )
   {
     save("screenshots/MantleScreenshot_" + year() + nf(month(), 2) + nf(day(), 2) 
@@ -672,7 +697,7 @@ float fromPercent(float n)
 
 void spawnShipPreyA()
 {
-  PVector pos = new PVector(random(-60,60), -10, 0);
+  PVector pos = new PVector(random(-60,60), -9, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
@@ -680,7 +705,7 @@ void spawnShipPreyA()
 
 void spawnShipPreyGunboat()
 {
-  PVector pos = new PVector(random(-60,60), -10, 0);
+  PVector pos = new PVector(random(-60,60), -9, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   Ship s = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 0);

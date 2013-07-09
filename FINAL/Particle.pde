@@ -7,6 +7,7 @@ class Particle
   float spin;
   boolean aimAlongMotion;
   boolean streak;
+  float streakLength;
   boolean disperse;
   float disperseSize;
   float age;
@@ -35,6 +36,7 @@ class Particle
     this.spin = spin;
     aimAlongMotion = false;
     streak = false;
+    streakLength = 1.0;  // Multiplies streak elongation
     disperse = true;
     disperseSize = 4.0;
     age = 0;
@@ -71,7 +73,7 @@ class Particle
     // Streak along motion
     if(streak)
     {
-      transform.setLocalScale(1.0, 1.0 + vel.mag() / sprite.coverageY, 1.0);
+      transform.setLocalScale(1.0, 1.0 + vel.mag() * streakLength / sprite.coverageY, 1.0);
     }
     
     // Age fading

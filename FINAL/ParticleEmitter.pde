@@ -6,6 +6,7 @@ class ParticleEmitter
   ArrayList templates;
   float emitRate;
   float emitLevel;
+  float ageMin;
   
   ParticleEmitter(DAGTransform transform, Particle template, float emitRate)
   {
@@ -17,6 +18,7 @@ class ParticleEmitter
     
     this.emitRate = emitRate;
     emitLevel = 0;
+    ageMin = 0.0;      // This is proportional to normalized ageMax
   }
   
   
@@ -74,7 +76,7 @@ class ParticleEmitter
     velN.mult(speed);
     float spinN = random(-1, 1) * template.spin;
     // Age
-    float ageMaxN = pow( random(1.0), 2.0 ) * template.ageMax;//random(template.ageMax);
+    float ageMaxN = pow( random(ageMin, 1.0), 2.0 ) * template.ageMax;//random(template.ageMax);
     
     Particle p = new Particle(dag,  sprite,  velN, spinN, ageMaxN);
     p.age = 0.0;
