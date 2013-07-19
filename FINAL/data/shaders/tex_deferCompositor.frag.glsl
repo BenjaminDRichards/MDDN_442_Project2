@@ -26,12 +26,14 @@ uniform sampler2D backgroundMap;
 uniform sampler2D foregroundMap;
 // Input 6: viewscreen warp
 uniform sampler2D screenWarpMap;
+uniform float screenWarpScale;
 
 
 // Chromatic abberation parameters
 // This is not 100% physically accurate,
 //   but red light is genuinely affected more than blue.
-const vec3 chromAb = vec3(0.1, 0.09, 0.08);
+// const vec3 chromAb = vec3(0.1, 0.09, 0.08);
+uniform vec3 chromAb;
 
 
 // Normal remap scalar
@@ -65,7 +67,8 @@ vec4 texture2DChromaticAberration(sampler2D src, vec2 coordR, vec2 coordG, vec2 
 
 void main() {
 	// Get screen distortion values
-	vec4 screenWarpCol = texture2D(screenWarpMap, vertTexCoord.xy) * normalScalar + normalAdder;
+	vec4 screenWarpCol = (texture2D(screenWarpMap, vertTexCoord.xy)
+		* normalScalar + normalAdder) * screenWarpScale;
 	// Get space distortion values
 	vec4 warpCol = (texture2D(warpMap, vertTexCoord.xy) * normalScalar + normalAdder) + screenWarpCol;
 	

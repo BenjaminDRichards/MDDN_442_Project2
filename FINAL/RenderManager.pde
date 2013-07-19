@@ -272,7 +272,10 @@ class RenderManager
     shaderComp.set("backgroundMap", bBackground);
     shaderComp.set("foregroundMap", bForeground);
     shaderComp.set("screenWarpMap", bScreenWarp);
+    shaderComp.set("screenWarpScale", 0.2);
     shaderComp.set("aspectRatioCorrection", bOutput.height / (float) bOutput.width,  1.0);
+    float chromAb = 0.3;
+    shaderComp.set("chromAb", 1.0 * chromAb, 0.9 * chromAb, 0.8 * chromAb);
     if( !bOutput.equals(g) )  bOutput.beginDraw();
     bOutput.shader(shaderComp);
     bOutput.image(bDiffuse, 0,0, bOutput.width, bOutput.height);

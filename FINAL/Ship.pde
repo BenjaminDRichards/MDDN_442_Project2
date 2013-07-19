@@ -932,6 +932,7 @@ class Ship
     DAGTransform dagShock = new DAGTransform(pos.x, pos.y, pos.z, 0, 1,1,1);
     Sprite sShock = new Sprite(dagShock, null, 2,2, -0.5,-0.5);
     sShock.setWarp(fx_shockwave);
+    sShock.masterTintWarp = color(255, 48);
     Particle pShock = new Particle(dagShock, sShock, new PVector(0,0,0), 0, 16);
     particles.add(pShock);
     pShock.disperse = true;
@@ -1700,6 +1701,733 @@ class Ship
   // configureAsGunboat
   
   
+  public void configureAsMantle()
+  // Default player ship
+  {
+    // Change behaviour
+    navMode = NAV_MODE_AVOID;
+    radius = 5;
+    destinationRadius = 15.0;
+    thrust = 0.0015;
+    turnThrust = 0.0002;
+    maxVel = 0.15;
+    colExplosion = color(255,222,192,255);
+    color colDrive = color(255,222,192, 255);
+    
+    
+    // Setup explosion particles
+    explosionTemplates.clear();
+    setupExplosionTemplatesPyroAndDebris(colExplosion);
+    
+    
+    // Setup geometry
+    
+    // Keel
+    DAGTransform dag_keel = new DAGTransform(0,-4,0, 0, 1,1,1);
+    Sprite sprite_keel = new Sprite(dag_keel, ship_mantle_keel_diff, 12,12, -0.5,-0.5);
+    sprite_keel.setSpecular(ship_mantle_keel_diff);
+    sprite_keel.setNormal(ship_mantle_keel_norm);
+    sprite_keel.setWarp(ship_mantle_keel_warp);
+    
+    // Drive lights and emitters
+    float driveEmitRate = 0.5;
+    float driveBrightness = 0.1;
+    // Exhaust particle
+    Sprite sprite_particle_exhaust = new Sprite(null, null, 1.0, 1.0, -0.5, -0.5);
+    sprite_particle_exhaust.setWarp(fx_wrinkle256);
+    sprite_particle_exhaust.masterTintWarp = color(255,8);
+    PVector exhaustVel = new PVector(0.05, 0, 0);
+    float exhaustSpin = 0.02;
+    float exhaustAgeMax = 60;
+    Particle particle_exhaust = new Particle(null, sprite_particle_exhaust, exhaustVel, exhaustSpin, exhaustAgeMax);
+    particle_exhaust.fadeWarp = Particle.FADE_INOUT_SMOOTH;
+    
+    // Left drive
+    DAGTransform dag_driveLeft = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_driveLeft.snapTo(dag_keel);
+    dag_driveLeft.setParent(dag_keel);
+    dag_driveLeft.moveWorld(-1.7, 1.0);
+    // Left drive animation
+    dag_driveLeft.useSX = true;
+    DAGTransform dag_driveLeft_key1 = new DAGTransform(0,0,0, 0, 0.0, 1,1);
+    DAGTransform dag_driveLeft_key2 = new DAGTransform(0,0,0, 0, 1.0, 1,1);
+    Animator anim_driveLeft = dag_driveLeft.makeSlider(dag_driveLeft_key1, dag_driveLeft_key2);
+    animThrust.add(anim_driveLeft);
+    // Left drive light
+    Light light_driveLeft = new Light(dag_driveLeft, driveBrightness, colDrive);
+    lights.add(light_driveLeft);
+    // Left drive emitter
+    ParticleEmitter emitter_driveLeft = new ParticleEmitter(dag_driveLeft, particle_exhaust, driveEmitRate);
+    emitter_driveLeft.ageMin = 0.5;
+    emitters.add(emitter_driveLeft);
+    
+    // Right drive
+    DAGTransform dag_driveRight = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_driveRight.snapTo(dag_keel);
+    dag_driveRight.setParent(dag_keel);
+    dag_driveRight.moveWorld(1.7, 1.0);
+    // Right drive animation
+    dag_driveRight.useSX = true;
+    DAGTransform dag_driveRight_key1 = new DAGTransform(0,0,0, 0, 0.0, 1,1);
+    DAGTransform dag_driveRight_key2 = new DAGTransform(0,0,0, 0, 1.0, 1,1);
+    Animator anim_driveRight = dag_driveRight.makeSlider(dag_driveRight_key1, dag_driveRight_key2);
+    animThrust.add(anim_driveRight);
+    // Right drive light
+    Light light_driveRight = new Light(dag_driveRight, driveBrightness, colDrive);
+    lights.add(light_driveRight);
+    // Right drive emitter
+    ParticleEmitter emitter_driveRight = new ParticleEmitter(dag_driveRight, particle_exhaust, driveEmitRate);
+    emitter_driveRight.ageMin = 0.5;
+    emitters.add(emitter_driveRight);
+    
+    
+    // Left wings
+    
+    // Left wing 1
+    
+    // Geometry
+    DAGTransform dag_wing1L = new DAGTransform(0,0,0,  0,  1,1,1);
+    dag_wing1L.snapTo(dag_keel);
+    dag_wing1L.setParent(dag_keel);
+    dag_wing1L.moveLocal(-1.0, -4.5, 0.0);
+    Sprite sprite_wing1L = new Sprite(dag_wing1L,  ship_mantle_wing1L_diff,  12,12, -0.9,-0.1);
+    sprite_wing1L.setSpecular(ship_mantle_wing1L_diff);
+    sprite_wing1L.setNormal(ship_mantle_wing1L_norm);
+    sprite_wing1L.setWarp(ship_mantle_wing1L_warp);
+    
+    // Animation
+    // Part one: fold back under thrust
+    dag_wing1L.useR = true;
+    DAGTransform dag_wing1L_thrust_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing1L_thrust_key2 = new DAGTransform(0,0,0,  -0.2,  1,1,1);
+    Animator anim_dag_wing1L_thrust = dag_wing1L.makeSlider(dag_wing1L_thrust_key1, dag_wing1L_thrust_key2);
+    animThrust.add(anim_dag_wing1L_thrust);
+    // Part two: bend forward on turn
+    dag_wing1L_thrust_key1.useR = true;
+    DAGTransform dag_wing1L_thrust_key1_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing1L_thrust_key1_key2 = new DAGTransform(0,0,0,  0.1,  1,1,1);
+    Animator anim_wing1L_thrust_key1 = 
+      dag_wing1L_thrust_key1.makeSlider(dag_wing1L_thrust_key1_key1, dag_wing1L_thrust_key1_key2);
+    animTurnRight.add(anim_wing1L_thrust_key1);
+    dag_wing1L_thrust_key2.useR = true;
+    DAGTransform dag_wing1L_thrust_key2_key1 = new DAGTransform(0,0,0,  -0.2,  1,1,1);
+    DAGTransform dag_wing1L_thrust_key2_key2 = new DAGTransform(0,0,0,  0.1,  1,1,1);
+    Animator anim_wing1L_thrust_key2 = 
+      dag_wing1L_thrust_key2.makeSlider(dag_wing1L_thrust_key2_key1, dag_wing1L_thrust_key2_key2);
+    animTurnRight.add(anim_wing1L_thrust_key2);
+    
+    // Maneuver jets
+    // Create geometry
+    DAGTransform dag_wing1L_jet = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1L_jet.snapTo(dag_wing1L);
+    dag_wing1L_jet.setParent(dag_wing1L);
+    dag_wing1L_jet.moveLocal(-8.0, 5.0, 0.0);
+    dag_wing1L_jet.rotate(PI);
+    Sprite sprite_wing1L_jet = new Sprite(dag_wing1L_jet, null, 4.0,4.0, -0.5,-1.0);
+    sprite_wing1L_jet.setEmissive(fx_jet);
+    sprite_wing1L_jet.masterTintEmit = colDrive;
+    // Create lights
+    Light light_wing1L_jet = new Light(dag_wing1L_jet, 0.5, colDrive);
+    lights.add(light_wing1L_jet);
+    // Set animators
+    dag_wing1L_jet.useSX = true;  dag_wing1L_jet.useSY = true;  dag_wing1L_jet.useSZ = true;
+    DAGTransform dag_wing1L_jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform dag_wing1L_jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator anim_wing1L_jet = dag_wing1L_jet.makeSlider( dag_wing1L_jet_key1, dag_wing1L_jet_key2 );
+    animTurnRight.add( anim_wing1L_jet );
+    
+    
+    // Left wing 2
+    
+    // Geometry
+    DAGTransform dag_wing2L = new DAGTransform(0,0,0,  0,  1,1,1);
+    dag_wing2L.snapTo(dag_keel);
+    dag_wing2L.setParent(dag_keel);
+    dag_wing2L.moveLocal(-3.0, 0.0, 0.0);
+    Sprite sprite_wing2L = new Sprite(dag_wing2L,  ship_mantle_wing2L_diff,  12,12, -0.5,-0.25);
+    sprite_wing2L.setSpecular(ship_mantle_wing2L_diff);
+    sprite_wing2L.setNormal(ship_mantle_wing2L_norm);
+    sprite_wing2L.setWarp(ship_mantle_wing2L_warp);
+    
+    // Animation
+    // Part one: fold back under thrust
+    dag_wing2L.useR = true;
+    DAGTransform dag_wing2L_thrust_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing2L_thrust_key2 = new DAGTransform(0,0,0,  -0.15,  1,1,1);
+    Animator anim_dag_wing2L_thrust = dag_wing2L.makeSlider(dag_wing2L_thrust_key1, dag_wing2L_thrust_key2);
+    animThrust.add(anim_dag_wing2L_thrust);
+    // Part two: bend forward on turn
+    dag_wing2L_thrust_key1.useR = true;
+    DAGTransform dag_wing2L_thrust_key1_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing2L_thrust_key1_key2 = new DAGTransform(0,0,0,  0.07,  1,1,1);
+    Animator anim_wing2L_thrust_key1 = 
+      dag_wing2L_thrust_key1.makeSlider(dag_wing2L_thrust_key1_key1, dag_wing2L_thrust_key1_key2);
+    animTurnRight.add(anim_wing2L_thrust_key1);
+    dag_wing2L_thrust_key2.useR = true;
+    DAGTransform dag_wing2L_thrust_key2_key1 = new DAGTransform(0,0,0,  -0.15,  1,1,1);
+    DAGTransform dag_wing2L_thrust_key2_key2 = new DAGTransform(0,0,0,  0.07,  1,1,1);
+    Animator anim_wing2L_thrust_key2 = 
+      dag_wing2L_thrust_key2.makeSlider(dag_wing2L_thrust_key2_key1, dag_wing2L_thrust_key2_key2);
+    animTurnRight.add(anim_wing2L_thrust_key2);
+    
+    // Maneuver jets
+    // Create geometry
+    DAGTransform dag_wing2L_jet = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing2L_jet.snapTo(dag_wing2L);
+    dag_wing2L_jet.setParent(dag_wing2L);
+    dag_wing2L_jet.moveLocal(-2.2, 6.2, 0.0);
+    dag_wing2L_jet.rotate(PI);
+    Sprite sprite_wing2L_jet = new Sprite(dag_wing2L_jet, null, 4.0,4.0, -0.5,-1.0);
+    sprite_wing2L_jet.setEmissive(fx_jet);
+    sprite_wing2L_jet.masterTintEmit = colDrive;
+    // Create lights
+    Light light_wing2L_jet = new Light(dag_wing2L_jet, 0.5, colDrive);
+    lights.add(light_wing2L_jet);
+    // Set animators
+    dag_wing2L_jet.useSX = true;  dag_wing2L_jet.useSY = true;  dag_wing2L_jet.useSZ = true;
+    DAGTransform dag_wing2L_jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform dag_wing2L_jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator anim_wing2L_jet = dag_wing2L_jet.makeSlider( dag_wing2L_jet_key1, dag_wing2L_jet_key2 );
+    animTurnRight.add( anim_wing2L_jet );
+    
+    // Turrets
+    
+    // Wing 1 turret 1
+    DAGTransform dag_wing1L_turret1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1L_turret1.snapTo(dag_wing1L);
+    dag_wing1L_turret1.setParent(dag_wing1L);
+    dag_wing1L_turret1.moveWorld(-4.0, 1.25, 0.0);
+    dag_wing1L_turret1.rotate(-HALF_PI - PI / 6.0);
+    breakpoints.add(dag_wing1L_turret1);
+    // Config turret
+    Ship turret_wing1L_1 = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing1L_1.configureAsTurretBulletB();
+    addSlave(turret_wing1L_1);
+    turret_wing1L_1.getRoot().snapTo(dag_wing1L_turret1);
+    turret_wing1L_1.getRoot().setParent(dag_wing1L_turret1);
+    
+    // Wing 1 turret 2
+    DAGTransform dag_wing1L_turret2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1L_turret2.snapTo(dag_wing1L);
+    dag_wing1L_turret2.setParent(dag_wing1L);
+    dag_wing1L_turret2.moveWorld(-7.0, 3.0, 0.0);
+    dag_wing1L_turret2.rotate(-HALF_PI - 1.5 * PI / 6.0);
+    breakpoints.add(dag_wing1L_turret2);
+    // Config turret
+    Ship turret_wing1L_2 = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing1L_2.configureAsTurretBulletB();
+    addSlave(turret_wing1L_2);
+    turret_wing1L_2.getRoot().snapTo(dag_wing1L_turret2);
+    turret_wing1L_2.getRoot().setParent(dag_wing1L_turret2);
+    
+    // Wing 2 turret
+    DAGTransform dag_wing2L_turret = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing2L_turret.snapTo(dag_wing2L);
+    dag_wing2L_turret.setParent(dag_wing2L);
+    dag_wing2L_turret.moveWorld(-2.2, 2.5, 0.0);
+    dag_wing2L_turret.rotate(-HALF_PI - 2.5 * PI / 6.0);
+    breakpoints.add(dag_wing2L_turret);
+    // Config turret
+    Ship turret_wing2L = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing2L.configureAsTurretMissileB();
+    addSlave(turret_wing2L);
+    turret_wing2L.getRoot().snapTo(dag_wing2L_turret);
+    turret_wing2L.getRoot().setParent(dag_wing2L_turret);
+    
+    
+    // Right wings
+    
+    // Right wing 1
+    
+    // Geometry
+    DAGTransform dag_wing1R = new DAGTransform(0,0,0,  0,  1,1,1);
+    dag_wing1R.snapTo(dag_keel);
+    dag_wing1R.setParent(dag_keel);
+    dag_wing1R.moveLocal(1.0, -4.5, 0.0);
+    Sprite sprite_wing1R = new Sprite(dag_wing1R,  ship_mantle_wing1R_diff,  12,12, -0.1,-0.1);
+    sprite_wing1R.setSpecular(ship_mantle_wing1R_diff);
+    sprite_wing1R.setNormal(ship_mantle_wing1R_norm);
+    sprite_wing1R.setWarp(ship_mantle_wing1R_warp);
+    
+    // Animation
+    // Part one: fold back under thrust
+    dag_wing1R.useR = true;
+    DAGTransform dag_wing1R_thrust_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing1R_thrust_key2 = new DAGTransform(0,0,0,  0.2,  1,1,1);
+    Animator anim_dag_wing1R_thrust = dag_wing1R.makeSlider(dag_wing1R_thrust_key1, dag_wing1R_thrust_key2);
+    animThrust.add(anim_dag_wing1R_thrust);
+    // Part two: bend forward on turn
+    dag_wing1R_thrust_key1.useR = true;
+    DAGTransform dag_wing1R_thrust_key1_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing1R_thrust_key1_key2 = new DAGTransform(0,0,0,  -0.1,  1,1,1);
+    Animator anim_wing1R_thrust_key1 = 
+      dag_wing1R_thrust_key1.makeSlider(dag_wing1R_thrust_key1_key1, dag_wing1R_thrust_key1_key2);
+    animTurnLeft.add(anim_wing1R_thrust_key1);
+    dag_wing1R_thrust_key2.useR = true;
+    DAGTransform dag_wing1R_thrust_key2_key1 = new DAGTransform(0,0,0,  0.2,  1,1,1);
+    DAGTransform dag_wing1R_thrust_key2_key2 = new DAGTransform(0,0,0,  -0.1,  1,1,1);
+    Animator anim_wing1R_thrust_key2 = 
+      dag_wing1R_thrust_key2.makeSlider(dag_wing1R_thrust_key2_key1, dag_wing1R_thrust_key2_key2);
+    animTurnLeft.add(anim_wing1R_thrust_key2);
+    
+    // Maneuver jets
+    // Create geometry
+    DAGTransform dag_wing1R_jet = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1R_jet.snapTo(dag_wing1R);
+    dag_wing1R_jet.setParent(dag_wing1R);
+    dag_wing1R_jet.moveLocal(8.0, 5.0, 0.0);
+    dag_wing1R_jet.rotate(PI);
+    Sprite sprite_wing1R_jet = new Sprite(dag_wing1R_jet, null, 4.0,4.0, -0.5,-1.0);
+    sprite_wing1R_jet.setEmissive(fx_jet);
+    sprite_wing1R_jet.masterTintEmit = colDrive;
+    // Create lights
+    Light light_wing1R_jet = new Light(dag_wing1R_jet, 0.5, colDrive);
+    lights.add(light_wing1R_jet);
+    // Set animators
+    dag_wing1R_jet.useSX = true;  dag_wing1R_jet.useSY = true;  dag_wing1R_jet.useSZ = true;
+    DAGTransform dag_wing1R_jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform dag_wing1R_jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator anim_wing1R_jet = dag_wing1R_jet.makeSlider( dag_wing1R_jet_key1, dag_wing1R_jet_key2 );
+    animTurnLeft.add( anim_wing1R_jet );
+    
+    
+    // Right wing 2
+    
+    // Geometry
+    DAGTransform dag_wing2R = new DAGTransform(0,0,0,  0,  1,1,1);
+    dag_wing2R.snapTo(dag_keel);
+    dag_wing2R.setParent(dag_keel);
+    dag_wing2R.moveLocal(3.0, 0.0, 0.0);
+    Sprite sprite_wing2R = new Sprite(dag_wing2R,  ship_mantle_wing2R_diff,  12,12, -0.5,-0.25);
+    sprite_wing2R.setSpecular(ship_mantle_wing2R_diff);
+    sprite_wing2R.setNormal(ship_mantle_wing2R_norm);
+    sprite_wing2R.setWarp(ship_mantle_wing2R_warp);
+    
+    // Animation
+    // Part one: fold back under thrust
+    dag_wing2R.useR = true;
+    DAGTransform dag_wing2R_thrust_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing2R_thrust_key2 = new DAGTransform(0,0,0,  0.15,  1,1,1);
+    Animator anim_dag_wing2R_thrust = dag_wing2R.makeSlider(dag_wing2R_thrust_key1, dag_wing2R_thrust_key2);
+    animThrust.add(anim_dag_wing2R_thrust);
+    // Part two: bend forward on turn
+    dag_wing2R_thrust_key1.useR = true;
+    DAGTransform dag_wing2R_thrust_key1_key1 = new DAGTransform(0,0,0,  0.0,  1,1,1);
+    DAGTransform dag_wing2R_thrust_key1_key2 = new DAGTransform(0,0,0,  -0.07,  1,1,1);
+    Animator anim_wing2R_thrust_key1 = 
+      dag_wing2R_thrust_key1.makeSlider(dag_wing2R_thrust_key1_key1, dag_wing2R_thrust_key1_key2);
+    animTurnLeft.add(anim_wing2R_thrust_key1);
+    dag_wing2R_thrust_key2.useR = true;
+    DAGTransform dag_wing2R_thrust_key2_key1 = new DAGTransform(0,0,0,  0.15,  1,1,1);
+    DAGTransform dag_wing2R_thrust_key2_key2 = new DAGTransform(0,0,0,  -0.07,  1,1,1);
+    Animator anim_wing2R_thrust_key2 = 
+      dag_wing2R_thrust_key2.makeSlider(dag_wing2R_thrust_key2_key1, dag_wing2R_thrust_key2_key2);
+    animTurnLeft.add(anim_wing2R_thrust_key2);
+    
+    // Maneuver jets
+    // Create geometry
+    DAGTransform dag_wing2R_jet = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing2R_jet.snapTo(dag_wing2R);
+    dag_wing2R_jet.setParent(dag_wing2R);
+    dag_wing2R_jet.moveLocal(2.2, 6.2, 0.0);
+    dag_wing2R_jet.rotate(PI);
+    Sprite sprite_wing2R_jet = new Sprite(dag_wing2R_jet, null, 4.0,4.0, -0.5,-1.0);
+    sprite_wing2R_jet.setEmissive(fx_jet);
+    sprite_wing2R_jet.masterTintEmit = colDrive;
+    // Create lights
+    Light light_wing2R_jet = new Light(dag_wing2R_jet, 0.5, colDrive);
+    lights.add(light_wing2R_jet);
+    // Set animators
+    dag_wing2R_jet.useSX = true;  dag_wing2R_jet.useSY = true;  dag_wing2R_jet.useSZ = true;
+    DAGTransform dag_wing2R_jet_key1 = new DAGTransform(0,0,0, 0, 0,0,0);
+    DAGTransform dag_wing2R_jet_key2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    Animator anim_wing2R_jet = dag_wing2R_jet.makeSlider( dag_wing2R_jet_key1, dag_wing2R_jet_key2 );
+    animTurnLeft.add( anim_wing2R_jet );
+    
+    // Turrets
+    
+    // Wing 1 turret 1
+    DAGTransform dag_wing1R_turret1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1R_turret1.snapTo(dag_wing1R);
+    dag_wing1R_turret1.setParent(dag_wing1R);
+    dag_wing1R_turret1.moveWorld(4.0, 1.25, 0.0);
+    dag_wing1R_turret1.rotate(-HALF_PI + PI / 6.0);
+    breakpoints.add(dag_wing1R_turret1);
+    // Config turret
+    Ship turret_wing1R_1 = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing1R_1.configureAsTurretBulletB();
+    addSlave(turret_wing1R_1);
+    turret_wing1R_1.getRoot().snapTo(dag_wing1R_turret1);
+    turret_wing1R_1.getRoot().setParent(dag_wing1R_turret1);
+    
+    // Wing 1 turret 2
+    DAGTransform dag_wing1R_turret2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing1R_turret2.snapTo(dag_wing1R);
+    dag_wing1R_turret2.setParent(dag_wing1R);
+    dag_wing1R_turret2.moveWorld(7.0, 3.0, 0.0);
+    dag_wing1R_turret2.rotate(-HALF_PI + 1.5 * PI / 6.0);
+    breakpoints.add(dag_wing1R_turret2);
+    // Config turret
+    Ship turret_wing1R_2 = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing1R_2.configureAsTurretBulletB();
+    addSlave(turret_wing1R_2);
+    turret_wing1R_2.getRoot().snapTo(dag_wing1R_turret2);
+    turret_wing1R_2.getRoot().setParent(dag_wing1R_turret2);
+    
+    // Wing 2 turret
+    DAGTransform dag_wing2R_turret = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_wing2R_turret.snapTo(dag_wing2R);
+    dag_wing2R_turret.setParent(dag_wing2R);
+    dag_wing2R_turret.moveWorld(2.2, 2.5, 0.0);
+    dag_wing2R_turret.rotate(-HALF_PI + 2.5 * PI / 6.0);
+    breakpoints.add(dag_wing2R_turret);
+    // Config turret
+    Ship turret_wing2R = new Ship( new PVector(0,0,0), new PVector(0,0,0), NAV_MODE_TURRET, shipManager, team);
+    turret_wing2R.configureAsTurretMissileB();
+    addSlave(turret_wing2R);
+    turret_wing2R.getRoot().snapTo(dag_wing2R_turret);
+    turret_wing2R.getRoot().setParent(dag_wing2R_turret);
+    
+    
+    // Tail chains
+    
+    // Central tail
+    // The central tail beats with movement, and tilts with turns.
+    // Each segment has an extra parent transform which does the beats.
+    // The sprite transform does the turns.
+    
+    // Geometry
+    
+    // Tail segment 1
+    DAGTransform dag_tail1_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail1_parent.snapTo(dag_keel);
+    dag_tail1_parent.setParent(dag_keel);
+    dag_tail1_parent.moveWorld(0, 1.2, 0);
+    DAGTransform dag_tail1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail1.snapTo(dag_tail1_parent);
+    dag_tail1.setParent(dag_tail1_parent);
+    Sprite sprite_tail1 = new Sprite(dag_tail1, ship_mantle_tail1_diff,  9,9, -0.5,-0.1);
+    sprite_tail1.setSpecular(ship_mantle_tail1_diff);
+    sprite_tail1.setNormal(ship_mantle_tail1_norm);
+    sprite_tail1.setWarp(ship_mantle_tail1_warp);
+    
+    // Tail segment 2
+    DAGTransform dag_tail2_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail2_parent.snapTo(dag_tail1);
+    dag_tail2_parent.setParent(dag_tail1);
+    dag_tail2_parent.moveWorld(0, 1.0, 0);
+    DAGTransform dag_tail2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail2.snapTo(dag_tail2_parent);
+    dag_tail2.setParent(dag_tail2_parent);
+    Sprite sprite_tail2 = new Sprite(dag_tail2, ship_mantle_tail2_diff,  9,9, -0.5,-0.1);
+    sprite_tail2.setSpecular(ship_mantle_tail2_diff);
+    sprite_tail2.setNormal(ship_mantle_tail2_norm);
+    sprite_tail2.setWarp(ship_mantle_tail2_warp);
+    
+    // Tail segment 3
+    DAGTransform dag_tail3_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail3_parent.snapTo(dag_tail2);
+    dag_tail3_parent.setParent(dag_tail2);
+    dag_tail3_parent.moveWorld(0, 3.0, 0);
+    DAGTransform dag_tail3 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tail3.snapTo(dag_tail3_parent);
+    dag_tail3.setParent(dag_tail3_parent);
+    Sprite sprite_tail3 = new Sprite(dag_tail3, ship_mantle_tail3_diff,  9,9, -0.5,-0.1);
+    sprite_tail3.setSpecular(ship_mantle_tail3_diff);
+    sprite_tail3.setNormal(ship_mantle_tail3_norm);
+    sprite_tail3.setWarp(ship_mantle_tail3_warp);
+    
+    // Tail segment tip
+    DAGTransform dag_tailTip_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailTip_parent.snapTo(dag_tail3);
+    dag_tailTip_parent.setParent(dag_tail3);
+    dag_tailTip_parent.moveWorld(0, 2.0, 0);
+    DAGTransform dag_tailTip = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailTip.snapTo(dag_tailTip_parent);
+    dag_tailTip.setParent(dag_tailTip_parent);
+    Sprite sprite_tailTip = new Sprite(dag_tailTip, ship_mantle_tailTip_diff,  12,12, -0.5,-0.1);
+    sprite_tailTip.setSpecular(ship_mantle_tailTip_diff);
+    sprite_tailTip.setNormal(ship_mantle_tailTip_norm);
+    sprite_tailTip.setWarp(ship_mantle_tailTip_warp);
+    
+    // Animation - beats
+    float beatSweepAngle = 0.05;
+    float beatPeriod = 240;
+    float beatPhase = 0.2;
+    
+    ArrayList tailSegsBeat = new ArrayList();
+    tailSegsBeat.add(dag_tail1_parent);
+    tailSegsBeat.add(dag_tail2_parent);
+    tailSegsBeat.add(dag_tail3_parent);
+    tailSegsBeat.add(dag_tailTip_parent);
+    Iterator i = tailSegsBeat.iterator();
+    int delayer = 0;
+    while( i.hasNext() )
+    {
+      DAGTransform dag = (DAGTransform) i.next();
+      dag.useR = true;
+      DAGTransform key1 = new DAGTransform(0,0,0, -beatSweepAngle, 1,1,1);
+      DAGTransform key2 = new DAGTransform(0,0,0, beatSweepAngle, 1,1,1);
+      Animator animate = dag.makeAnimator(key1, key2);
+      animate.setType(Animator.ANIM_OSCILLATE);
+      animate.period = beatPeriod;
+      animate.delay = beatPhase * delayer;
+      delayer++;
+      anim.add(animate);
+      // Thrust animation
+      DAGTransform key1_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform key1_key2 = new DAGTransform(0,0,0, -beatSweepAngle, 1,1,1);
+      Animator anim_key1 = key1.makeSlider(key1_key1, key1_key2);
+      animThrust.add(anim_key1);
+      DAGTransform key2_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform key2_key2 = new DAGTransform(0,0,0, beatSweepAngle, 1,1,1);
+      Animator anim_key2 = key2.makeSlider(key2_key1, key2_key2);
+      animThrust.add(anim_key2);
+    }
+    
+    // Animation - turns
+    float turnAngle = 0.15;
+    ArrayList tailSegsTurn = new ArrayList();
+    tailSegsTurn.add(dag_tail1);
+    tailSegsTurn.add(dag_tail2);
+    tailSegsTurn.add(dag_tail3);
+    tailSegsTurn.add(dag_tailTip);
+    Iterator j = tailSegsTurn.iterator();
+    while( j.hasNext() )
+    {
+      DAGTransform dag = (DAGTransform) j.next();
+      dag.useR = true;
+      DAGTransform left_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform left_key2 = new DAGTransform(0,0,0, turnAngle, 1,1,1);
+      Animator anim_left = dag.makeSlider(left_key1, left_key2);
+      animTurnLeft.add(anim_left);
+      // ... and tweak the keys to account for turning right, too.
+      DAGTransform right_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform right_key2 = new DAGTransform(0,0,0, -turnAngle, 1,1,1);
+      Animator anim_right = left_key1.makeSlider(right_key1, right_key2);
+      animTurnRight.add(anim_right);
+    }
+    
+    
+    // Left tail
+    
+    // Geometry
+    
+    // Left Tail 1
+    DAGTransform dag_tailL1_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL1_parent.snapTo(dag_wing2L);
+    dag_tailL1_parent.setParent(dag_wing2L);
+    dag_tailL1_parent.moveWorld(-0.5, -3.0, 0.0);
+    DAGTransform dag_tailL1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL1.snapTo(dag_tailL1_parent);
+    dag_tailL1.setParent(dag_tailL1_parent);
+    Sprite sprite_tailL1 = new Sprite(dag_tailL1, ship_mantle_tailL1_diff, 12,12, -0.4,-0.1);
+    sprite_tailL1.setSpecular(ship_mantle_tailL1_diff);
+    sprite_tailL1.setNormal(ship_mantle_tailL1_norm);
+    sprite_tailL1.setWarp(ship_mantle_tailL1_warp);
+    
+    // Left Tail 2
+    DAGTransform dag_tailL2_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL2_parent.snapTo(dag_tailL1);
+    dag_tailL2_parent.setParent(dag_tailL1);
+    dag_tailL2_parent.moveWorld(1.5, 6.0, 0.0);
+    DAGTransform dag_tailL2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL2.snapTo(dag_tailL2_parent);
+    dag_tailL2.setParent(dag_tailL2_parent);
+    Sprite sprite_tailL2 = new Sprite(dag_tailL2, ship_mantle_tailL2_diff, 9,9, -0.5,-0.1);
+    sprite_tailL2.setSpecular(ship_mantle_tailL2_diff);
+    sprite_tailL2.setNormal(ship_mantle_tailL2_norm);
+    sprite_tailL2.setWarp(ship_mantle_tailL2_warp);
+    
+    // Left Tail 3
+    DAGTransform dag_tailL3_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL3_parent.snapTo(dag_tailL2);
+    dag_tailL3_parent.setParent(dag_tailL2);
+    dag_tailL3_parent.moveWorld(0.0, 5.5, 0.0);
+    DAGTransform dag_tailL3 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailL3.snapTo(dag_tailL3_parent);
+    dag_tailL3.setParent(dag_tailL3_parent);
+    Sprite sprite_tailL3 = new Sprite(dag_tailL3, ship_mantle_tailL3_diff, 6,6, -0.5,-0.4);
+    sprite_tailL3.setSpecular(ship_mantle_tailL3_diff);
+    sprite_tailL3.setNormal(ship_mantle_tailL3_norm);
+    sprite_tailL3.setWarp(ship_mantle_tailL3_warp);
+    
+    // Animate beats
+    beatSweepAngle = 0.07;
+    beatPeriod = 180;
+    beatPhase = 0.2;
+    tailSegsBeat = new ArrayList();
+    tailSegsBeat.add(dag_tailL1_parent);
+    tailSegsBeat.add(dag_tailL2_parent);
+    tailSegsBeat.add(dag_tailL3_parent);
+    i = tailSegsBeat.iterator();
+    delayer = 2;
+    while( i.hasNext() )
+    {
+      DAGTransform dag = (DAGTransform) i.next();
+      dag.useR = true;
+      DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+      DAGTransform key2 = new DAGTransform(0,0,0, beatSweepAngle, 1,1,1);
+      Animator animate = dag.makeAnimator(key1, key2);
+      animate.setType(Animator.ANIM_OSCILLATE);
+      animate.period = beatPeriod;
+      animate.delay = beatPhase * delayer;
+      delayer++;
+      anim.add(animate);
+      // Thrust animation
+      // We don't animate key1, because that pushes it too far below the main tail.
+      DAGTransform key2_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform key2_key2 = new DAGTransform(0,0,0, beatSweepAngle, 1,1,1);
+      Animator anim_key2 = key2.makeSlider(key2_key1, key2_key2);
+      animThrust.add(anim_key2);
+    }
+    
+    // Animate turn
+    turnAngle = 0.1;
+    tailSegsTurn = new ArrayList();
+    tailSegsTurn.add(dag_tailL1);
+    tailSegsTurn.add(dag_tailL2);
+    tailSegsTurn.add(dag_tailL3);
+    j = tailSegsTurn.iterator();
+    while( j.hasNext() )
+    {
+      DAGTransform dag = (DAGTransform) j.next();
+      dag.useR = true;
+      DAGTransform left_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform left_key2 = new DAGTransform(0,0,0, turnAngle, 1,1,1);
+      Animator anim_left = dag.makeSlider(left_key1, left_key2);
+      animTurnLeft.add(anim_left);
+      // ... and tweak the keys to account for turning right, too.
+      DAGTransform right_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform right_key2 = new DAGTransform(0,0,0, -turnAngle, 1,1,1);
+      Animator anim_right = left_key1.makeSlider(right_key1, right_key2);
+      animTurnRight.add(anim_right);
+    }
+    
+    // Right tail
+    
+    // Geometry
+    
+    // Right Tail 1
+    DAGTransform dag_tailR1_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR1_parent.snapTo(dag_wing2R);
+    dag_tailR1_parent.setParent(dag_wing2R);
+    dag_tailR1_parent.moveWorld(0.5, -3.0, 0.0);
+    DAGTransform dag_tailR1 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR1.snapTo(dag_tailR1_parent);
+    dag_tailR1.setParent(dag_tailR1_parent);
+    Sprite sprite_tailR1 = new Sprite(dag_tailR1, ship_mantle_tailR1_diff, 12,12, -0.6,-0.1);
+    sprite_tailR1.setSpecular(ship_mantle_tailR1_diff);
+    sprite_tailR1.setNormal(ship_mantle_tailR1_norm);
+    sprite_tailR1.setWarp(ship_mantle_tailR1_warp);
+    
+    // Right Tail 2
+    DAGTransform dag_tailR2_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR2_parent.snapTo(dag_tailR1);
+    dag_tailR2_parent.setParent(dag_tailR1);
+    dag_tailR2_parent.moveWorld(-1.5, 6.0, 0.0);
+    DAGTransform dag_tailR2 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR2.snapTo(dag_tailR2_parent);
+    dag_tailR2.setParent(dag_tailR2_parent);
+    Sprite sprite_tailR2 = new Sprite(dag_tailR2, ship_mantle_tailR2_diff, 9,9, -0.5,-0.1);
+    sprite_tailR2.setSpecular(ship_mantle_tailR2_diff);
+    sprite_tailR2.setNormal(ship_mantle_tailR2_norm);
+    sprite_tailR2.setWarp(ship_mantle_tailR2_warp);
+    
+    // Right Tail 3
+    DAGTransform dag_tailR3_parent = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR3_parent.snapTo(dag_tailR2);
+    dag_tailR3_parent.setParent(dag_tailR2);
+    dag_tailR3_parent.moveWorld(0.0, 5.5, 0.0);
+    DAGTransform dag_tailR3 = new DAGTransform(0,0,0, 0, 1,1,1);
+    dag_tailR3.snapTo(dag_tailR3_parent);
+    dag_tailR3.setParent(dag_tailR3_parent);
+    Sprite sprite_tailR3 = new Sprite(dag_tailR3, ship_mantle_tailR3_diff, 6,6, -0.5,-0.4);
+    sprite_tailR3.setSpecular(ship_mantle_tailR3_diff);
+    sprite_tailR3.setNormal(ship_mantle_tailR3_norm);
+    sprite_tailR3.setWarp(ship_mantle_tailR3_warp);
+    
+    // Animate beats
+    tailSegsBeat = new ArrayList();
+    tailSegsBeat.add(dag_tailR1_parent);
+    tailSegsBeat.add(dag_tailR2_parent);
+    tailSegsBeat.add(dag_tailR3_parent);
+    i = tailSegsBeat.iterator();
+    delayer = 2;
+    while( i.hasNext() )
+    {
+      DAGTransform dag = (DAGTransform) i.next();
+      dag.useR = true;
+      DAGTransform key1 = new DAGTransform(0,0,0, 0, 1,1,1);
+      DAGTransform key2 = new DAGTransform(0,0,0, -beatSweepAngle, 1,1,1);
+      Animator animate = dag.makeAnimator(key1, key2);
+      animate.setType(Animator.ANIM_OSCILLATE);
+      animate.period = beatPeriod;
+      animate.delay = beatPhase * (delayer - HALF_PI);
+      delayer++;
+      anim.add(animate);
+      // Thrust animation
+      // We don't animate key1, because that pushes it too far below the main tail.
+      DAGTransform key2_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform key2_key2 = new DAGTransform(0,0,0, -beatSweepAngle, 1,1,1);
+      Animator anim_key2 = key2.makeSlider(key2_key1, key2_key2);
+      animThrust.add(anim_key2);
+    }
+    
+    // Animate turn
+    tailSegsTurn = new ArrayList();
+    tailSegsTurn.add(dag_tailR1);
+    tailSegsTurn.add(dag_tailR2);
+    tailSegsTurn.add(dag_tailR3);
+    j = tailSegsTurn.iterator();
+    while( j.hasNext() )
+    {
+      // This loop is the same as the left-hand side.
+      // It bends both ways.
+      DAGTransform dag = (DAGTransform) j.next();
+      dag.useR = true;
+      DAGTransform left_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform left_key2 = new DAGTransform(0,0,0, turnAngle, 1,1,1);
+      Animator anim_left = dag.makeSlider(left_key1, left_key2);
+      animTurnLeft.add(anim_left);
+      // ... and tweak the keys to account for turning right, too.
+      DAGTransform right_key1 = new DAGTransform(0,0,0, 0.0, 1,1,1);
+      DAGTransform right_key2 = new DAGTransform(0,0,0, -turnAngle, 1,1,1);
+      Animator anim_right = left_key1.makeSlider(right_key1, right_key2);
+      animTurnRight.add(anim_right);
+    }
+    
+    
+    
+    // Finalise
+    boltToRoot(dag_keel);
+    
+    
+    // Add sprites in order
+    sprites.clear();
+    sprites.add(sprite_tailR2);
+    sprites.add(sprite_tailR3);  // Above tailL2
+    sprites.add(sprite_tailR1);
+    sprites.add(sprite_tailL2);
+    sprites.add(sprite_tailL3);  // Above tailL2
+    sprites.add(sprite_tailL1);
+    sprites.add(sprite_wing2R);
+    sprites.add(sprite_wing2L);
+    sprites.add(sprite_wing1R);
+    sprites.add(sprite_wing1L);
+    sprites.add(sprite_tail3);
+    sprites.add(sprite_tailTip);  // Above tail3, actually
+    sprites.add(sprite_tail2);
+    sprites.add(sprite_tail1);
+    sprites.add(sprite_keel);
+    sprites.add(sprite_wing2R_jet);
+    sprites.add(sprite_wing2L_jet);
+    sprites.add(sprite_wing1R_jet);
+    sprites.add(sprite_wing1L_jet);
+  }
+  // configureAsMantle()
+  
+  
   public void configureAsTurretMissileA()
   // This shoots missile-A munitions in cool plasma
   {
@@ -1713,6 +2441,16 @@ class Ship
   {
     configureAsTurretMissile( color(255,191,127,255) );
     munitionType = MUNITION_MISSILE_B;
+    
+    // Reconfigure sprite
+    // This assumes there are no sprites other than the base hull
+    Sprite s = (Sprite) sprites.get(0);
+    s.setDiffuse(ship_mantle_turret_diff);
+    s.setSpecular(ship_mantle_turret_diff);
+    s.setNormal(ship_mantle_turret_norm);
+    s.setWarp(ship_mantle_turret_warp);
+    s.coverageX = 6.0;
+    s.coverageY = 6.0;
   }
   // configureAsTurretMissileA
   
@@ -1762,6 +2500,16 @@ class Ship
   {
     configureAsTurretBullet( color(255,191,127,255) );
     munitionType = MUNITION_BULLET_B;
+    
+    // Reconfigure sprite
+    // This assumes there are no sprites other than the base hull
+    Sprite s = (Sprite) sprites.get(0);
+    s.setDiffuse(ship_mantle_turret_diff);
+    s.setSpecular(ship_mantle_turret_diff);
+    s.setNormal(ship_mantle_turret_norm);
+    s.setWarp(ship_mantle_turret_warp);
+    s.coverageX = 6.0;
+    s.coverageY = 6.0;
   }
   // configureAsTurretBulletA
   
@@ -1786,7 +2534,7 @@ class Ship
     
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
-    /* Setup some graphics */
+    // Setup some graphics
     Sprite hullS = new Sprite(hull, ship_preya_turret_diff, 12,12, -0.5,-0.5);
     hullS.setSpecular(ship_preya_turret_diff);
     hullS.setNormal(ship_preya_turret_norm);
@@ -1855,10 +2603,10 @@ class Ship
   {
     // Set homing behaviour
     navMode = NAV_MODE_HOMING;
-    maxVel = 0.3;
+    maxVel = 0.6;
     maxTurn = 0.06;
     turnThrust = 0.002;
-    turnDrag = 0.95;
+    turnDrag = 0.99;
     thrust = 0.01;
     radius = 3.0;
     destinationRadius = 1.0;
@@ -1884,7 +2632,7 @@ class Ship
     
     // Maneuver jets
     
-    // Left jet
+    // Right jet
     DAGTransform jetLDag = new DAGTransform(0.0, -1.0, 0.0,  -HALF_PI,  1,1,1);
     jetLDag.setParent(hull);
     jetLDag.useSX = true;  jetLDag.useSY = true;  jetLDag.useSZ = true;
@@ -1916,7 +2664,7 @@ class Ship
     {
       DAGTransform em1Host = new DAGTransform(0, 0.8, 0,  0,  1,1,1);
       em1Host.setParent(hull);
-      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 8.0);
+      ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 4.0);
       emitters.add(em1);
       
       // Drive light 1
@@ -1925,6 +2673,7 @@ class Ship
       
       // PARTICLES
       
+      // Streaks
       DAGTransform dag = new DAGTransform(0,0,0, 0, 1,1,1);
       Sprite s = new Sprite(dag, null, 0.5, 0.5, -0.5, -0.5);
       s.setEmissive( fx_streak );
@@ -1938,6 +2687,18 @@ class Ship
       p.disperse = false;
       for(int i = 0;  i < 2;  i++)
         em1.addTemplate(p);
+      
+      // Refractors
+      Sprite sprite_particle_exhaust = new Sprite(null, null, 0.5, 0.5, -0.5, -0.5);
+      sprite_particle_exhaust.setWarp(fx_wrinkle256);
+      sprite_particle_exhaust.masterTintWarp = color(255,64);
+      PVector exhaustVel = new PVector(0.05, 0, 0);
+      float exhaustSpin = 0.02;
+      float exhaustAgeMax = 60;
+      Particle particle_exhaust = new Particle(null, sprite_particle_exhaust, exhaustVel, exhaustSpin, exhaustAgeMax);
+      particle_exhaust.fadeWarp = Particle.FADE_INOUT_SMOOTH;
+      for(int i = 0;  i < 2;  i++)
+        em1.addTemplate(particle_exhaust);
       
       // Puffs
       PVector puffVel = new PVector(0.04, 0, 0);
@@ -2074,8 +2835,11 @@ class Ship
     // Create geometry
     DAGTransform hull = new DAGTransform(0,0,0, 0, 1,1,1);
     // Setup some graphics
-    Sprite s = new Sprite(hull, debris_dust, 50.0, 50.0, -0.5,-0.5);
-    s.masterTintDiff = color(255,255);
+    float sz = random(50.0, 100.0);
+    Sprite s = new Sprite(hull, debris_dust, sz,sz, -0.5,-0.5);
+    s.masterTintDiff = color(0,255);
+    s.setEmissive(debris_dust);
+    s.masterTintEmit = color(0,255);
     sprites.add(s);
     
     // Animate the hull to rotate

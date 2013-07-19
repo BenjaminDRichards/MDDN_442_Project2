@@ -94,6 +94,23 @@ PImage ship_preya_thrusterL_warp;
 PImage ship_preya_thrusterR_warp;
 PImage ship_preya_turret_warp;
 
+PImage ship_mantle_keel_diff, ship_mantle_keel_norm, ship_mantle_keel_warp;
+PImage ship_mantle_tail1_diff, ship_mantle_tail1_norm, ship_mantle_tail1_warp;
+PImage ship_mantle_tail2_diff, ship_mantle_tail2_norm, ship_mantle_tail2_warp;
+PImage ship_mantle_tail3_diff, ship_mantle_tail3_norm, ship_mantle_tail3_warp;
+PImage ship_mantle_tailL1_diff, ship_mantle_tailL1_norm, ship_mantle_tailL1_warp;
+PImage ship_mantle_tailL2_diff, ship_mantle_tailL2_norm, ship_mantle_tailL2_warp;
+PImage ship_mantle_tailL3_diff, ship_mantle_tailL3_norm, ship_mantle_tailL3_warp;
+PImage ship_mantle_tailR1_diff, ship_mantle_tailR1_norm, ship_mantle_tailR1_warp;
+PImage ship_mantle_tailR2_diff, ship_mantle_tailR2_norm, ship_mantle_tailR2_warp;
+PImage ship_mantle_tailR3_diff, ship_mantle_tailR3_norm, ship_mantle_tailR3_warp;
+PImage ship_mantle_tailTip_diff, ship_mantle_tailTip_norm, ship_mantle_tailTip_warp;
+PImage ship_mantle_turret_diff, ship_mantle_turret_norm, ship_mantle_turret_warp;
+PImage ship_mantle_wing1L_diff, ship_mantle_wing1L_norm, ship_mantle_wing1L_warp;
+PImage ship_mantle_wing1R_diff, ship_mantle_wing1R_norm, ship_mantle_wing1R_warp;
+PImage ship_mantle_wing2L_diff, ship_mantle_wing2L_norm, ship_mantle_wing2L_warp;
+PImage ship_mantle_wing2R_diff, ship_mantle_wing2R_norm, ship_mantle_wing2R_warp;
+
 PImage debris_01_diff, debris_01_norm;
 PImage debris_02_diff, debris_02_norm;
 PImage debris_03_diff, debris_03_norm;
@@ -287,6 +304,56 @@ void setup()
   ship_preya_turret_warp = normalToWarp( loadImage("images/ships/PreyA/PreyA_turret_norm.png"),  "PreyA_turret_warp" );
   */
   
+  // LoadMantle ship sprites
+  ship_mantle_keel_diff = loadImage("images/ships/Mantle/Mantle_keel_diff.png");
+  ship_mantle_keel_norm = loadImage("images/ships/Mantle/Mantle_keel_norm.png");
+  ship_mantle_keel_warp = loadImage("images/ships/Mantle/Mantle_keel_warp.png");
+  ship_mantle_tail1_diff = loadImage("images/ships/Mantle/Mantle_tail1_diff.png");
+  ship_mantle_tail1_norm = loadImage("images/ships/Mantle/Mantle_tail1_norm.png");
+  ship_mantle_tail1_warp = loadImage("images/ships/Mantle/Mantle_tail1_warp.png");
+  ship_mantle_tail2_diff = loadImage("images/ships/Mantle/Mantle_tail2_diff.png");
+  ship_mantle_tail2_norm = loadImage("images/ships/Mantle/Mantle_tail2_norm.png");
+  ship_mantle_tail2_warp = loadImage("images/ships/Mantle/Mantle_tail2_warp.png");
+  ship_mantle_tail3_diff = loadImage("images/ships/Mantle/Mantle_tail3_diff.png");
+  ship_mantle_tail3_norm = loadImage("images/ships/Mantle/Mantle_tail3_norm.png");
+  ship_mantle_tail3_warp = loadImage("images/ships/Mantle/Mantle_tail3_warp.png");
+  ship_mantle_tailL1_diff = loadImage("images/ships/Mantle/Mantle_tailL1_diff.png");
+  ship_mantle_tailL1_norm = loadImage("images/ships/Mantle/Mantle_tailL1_norm.png");
+  ship_mantle_tailL1_warp = loadImage("images/ships/Mantle/Mantle_tailL1_warp.png");
+  ship_mantle_tailL2_diff = loadImage("images/ships/Mantle/Mantle_tailL2_diff.png");
+  ship_mantle_tailL2_norm = loadImage("images/ships/Mantle/Mantle_tailL2_norm.png");
+  ship_mantle_tailL2_warp = loadImage("images/ships/Mantle/Mantle_tailL2_warp.png");
+  ship_mantle_tailL3_diff = loadImage("images/ships/Mantle/Mantle_tailL3_diff.png");
+  ship_mantle_tailL3_norm = loadImage("images/ships/Mantle/Mantle_tailL3_norm.png");
+  ship_mantle_tailL3_warp = loadImage("images/ships/Mantle/Mantle_tailL3_warp.png");
+  ship_mantle_tailR1_diff = loadImage("images/ships/Mantle/Mantle_tailR1_diff.png");
+  ship_mantle_tailR1_norm = loadImage("images/ships/Mantle/Mantle_tailR1_norm.png");
+  ship_mantle_tailR1_warp = loadImage("images/ships/Mantle/Mantle_tailR1_warp.png");
+  ship_mantle_tailR2_diff = loadImage("images/ships/Mantle/Mantle_tailR2_diff.png");
+  ship_mantle_tailR2_norm = loadImage("images/ships/Mantle/Mantle_tailR2_norm.png");
+  ship_mantle_tailR2_warp = loadImage("images/ships/Mantle/Mantle_tailR2_warp.png");
+  ship_mantle_tailR3_diff = loadImage("images/ships/Mantle/Mantle_tailR3_diff.png");
+  ship_mantle_tailR3_norm = loadImage("images/ships/Mantle/Mantle_tailR3_norm.png");
+  ship_mantle_tailR3_warp = loadImage("images/ships/Mantle/Mantle_tailR3_warp.png");
+  ship_mantle_tailTip_diff = loadImage("images/ships/Mantle/Mantle_tailTip_diff.png");
+  ship_mantle_tailTip_norm = loadImage("images/ships/Mantle/Mantle_tailTip_norm.png");
+  ship_mantle_tailTip_warp = loadImage("images/ships/Mantle/Mantle_tailTip_warp.png");
+  ship_mantle_turret_diff = loadImage("images/ships/Mantle/Mantle_turret_diff.png");
+  ship_mantle_turret_norm = loadImage("images/ships/Mantle/Mantle_turret_norm.png");
+  ship_mantle_turret_warp = loadImage("images/ships/Mantle/Mantle_turret_warp.png");
+  ship_mantle_wing1L_diff = loadImage("images/ships/Mantle/Mantle_wing1L_diff.png");
+  ship_mantle_wing1L_norm = loadImage("images/ships/Mantle/Mantle_wing1L_norm.png");
+  ship_mantle_wing1L_warp = loadImage("images/ships/Mantle/Mantle_wing1L_warp.png");
+  ship_mantle_wing1R_diff = loadImage("images/ships/Mantle/Mantle_wing1R_diff.png");
+  ship_mantle_wing1R_norm = loadImage("images/ships/Mantle/Mantle_wing1R_norm.png");
+  ship_mantle_wing1R_warp = loadImage("images/ships/Mantle/Mantle_wing1R_warp.png");
+  ship_mantle_wing2L_diff = loadImage("images/ships/Mantle/Mantle_wing2L_diff.png");
+  ship_mantle_wing2L_norm = loadImage("images/ships/Mantle/Mantle_wing2L_norm.png");
+  ship_mantle_wing2L_warp = loadImage("images/ships/Mantle/Mantle_wing2L_warp.png");
+  ship_mantle_wing2R_diff = loadImage("images/ships/Mantle/Mantle_wing2R_diff.png");
+  ship_mantle_wing2R_norm = loadImage("images/ships/Mantle/Mantle_wing2R_norm.png");
+  ship_mantle_wing2R_warp = loadImage("images/ships/Mantle/Mantle_wing2R_warp.png");
+  
   // Load debris sprites
   debris_01_diff = loadImage("images/effects/debris/debris01_diff.png");
   debris_01_norm = loadImage("images/effects/debris/debris01_norm.png");
@@ -363,13 +430,13 @@ void setup()
     PVector pos = new PVector(0, 50, 0);
     PVector targetPos = pos.get();
     targetPos.add( new PVector(0, 1, 0) );
-    Ship gunboat = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 1);
-    gunboat.wrap = false;
-    gunboat.navMode = Ship.NAV_MODE_EXTERNAL;
-    gunboat.cloakOnInactive = true;
-    gunboat.invulnerable = true;
+    Ship player1 = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_MANTLE, 1);
+    player1.wrap = false;
+    player1.navMode = Ship.NAV_MODE_EXTERNAL;
+    player1.cloakOnInactive = true;
+    player1.invulnerable = true;
     
-    playerShip = gunboat;
+    playerShip = player1;
   }
   for(int i = 0;  i < MIN_SHIP_COUNT;  i++)
   {
@@ -379,7 +446,8 @@ void setup()
   
   // Populate set dressing
   dressageShipManager = new ShipManager();
-  for(int i = 0;  i < 32;  i++)
+  int dressCount = 16;
+  for(int i = 0;  i < dressCount;  i++)
   {
     PVector pos = new PVector(random(-60,60),  random(0,100),  0.0);
     PVector targetPos = new PVector(random(-60,60),  random(0,100),  0.0);
@@ -405,8 +473,8 @@ void setup()
   Light dirl = new Light(dirlDag, 0.2, color(127, 191, 255, 255));
   dirl.makeDirectional( new PVector(0.6, -1, 0.0) );
   sceneLights.add(dirl);
-  // Green fill from above
-  dirl = new Light(dirlDag, 0.05, color(191,255,191, 255));
+  // Neutral fill from above
+  dirl = new Light(dirlDag, 0.1, color(255, 255));
   dirl.makeDirectional( new PVector(0.3, 1.0, -0.5) );
   sceneLights.add(dirl);
   // Blue rim
@@ -502,6 +570,8 @@ void draw()
   
   // Manage story
   story.run();
+  //float tick = story.tick;
+  float tick = 2.0;  // Frame rate override
   
   
   // Manage scene lights
@@ -515,20 +585,20 @@ void draw()
   
   // Smooth simulation
   float simStep = 0.5;
-  float simSteps = ceil(story.tick / simStep);
+  float simSteps = ceil(tick / simStep);
   
   // Manage set dressing
   for(int i = 0;  i < simSteps;  i++)
   {
-    dressageShipManager.run(story.tick / simSteps);
+    dressageShipManager.run(tick / simSteps);
   }
   
   // Manage ships
   for(int i = 0;  i < simSteps;  i++)
   {
-    sceneShipManager.run(story.tick / simSteps);
+    sceneShipManager.run(tick / simSteps);
   }
-  //sceneShipManager.run(story.tick);
+  //sceneShipManager.run(tick);
   
   // Render
   dressageShipManager.render(renderManager);
@@ -697,7 +767,7 @@ float fromPercent(float n)
 
 void spawnShipPreyA()
 {
-  PVector pos = new PVector(random(-60,60), -9, 0);
+  PVector pos = new PVector(random(-60,60), -4, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
@@ -705,7 +775,7 @@ void spawnShipPreyA()
 
 void spawnShipPreyGunboat()
 {
-  PVector pos = new PVector(random(-60,60), -9, 0);
+  PVector pos = new PVector(random(-60,60), -4, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   Ship s = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 0);

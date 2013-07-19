@@ -7,6 +7,7 @@ class ShipManager
   
   public static final int MODEL_PREY_A = 1;
   public static final int MODEL_GUNBOAT = 2;
+  public static final int MODEL_MANTLE = 3;
   public static final int MODEL_TURRET_MISSILE_A = 10;
   public static final int MODEL_TURRET_BULLET_A = 11;
   public static final int MODEL_MISSILE_A = 20;
@@ -64,6 +65,9 @@ class ShipManager
         break;
       case MODEL_GUNBOAT:
         ship.configureAsGunboat();
+        break;
+      case MODEL_MANTLE:
+        ship.configureAsMantle();
         break;
       case MODEL_TURRET_MISSILE_A:
         ship.configureAsTurretMissileA();
