@@ -166,7 +166,7 @@ void setup()
   //size(640, 360, P2D);            // For diagnostics - currently, it doesn't run much faster
   //size(2480, 1395, P2D);          // For renders - this fits horizontally on portrait A4 
                                     //  - crazy high, doesn't run at all cooperatively
-  frameRate(30);                    // Because it's plenty smooth at 30 and 15 is too low
+  //frameRate(30);                    // Because it's plenty smooth at 30 and 15 is too low
   
   noCursor();
   
@@ -214,7 +214,7 @@ void setup()
   
   lightStencil = loadImage("images/lightStencil16.png");
   
-  tex_backdrop = loadImage("images/starscape3.png");
+  tex_backdrop = loadImage("images/starscape4.png");
   tex_warpBackdrop = loadImage("images/windowGlass5.png");
   
   fx_shockwave = loadImage("images/effects/shockwave2.png");
@@ -446,7 +446,7 @@ void setup()
   
   // Populate set dressing
   dressageShipManager = new ShipManager();
-  int dressCount = 16;
+  int dressCount = 8;
   for(int i = 0;  i < dressCount;  i++)
   {
     PVector pos = new PVector(random(-60,60),  random(0,100),  0.0);
@@ -474,7 +474,7 @@ void setup()
   dirl.makeDirectional( new PVector(0.6, -1, 0.0) );
   sceneLights.add(dirl);
   // Neutral fill from above
-  dirl = new Light(dirlDag, 0.1, color(255, 255));
+  dirl = new Light(dirlDag, 0.1, color(191, 255, 191, 255));
   dirl.makeDirectional( new PVector(0.3, 1.0, -0.5) );
   sceneLights.add(dirl);
   // Blue rim
@@ -571,7 +571,7 @@ void draw()
   // Manage story
   story.run();
   //float tick = story.tick;
-  float tick = 2.0;  // Frame rate override
+  float tick = min(2.0, story.tick);  // Frame rate override
   
   
   // Manage scene lights
@@ -584,7 +584,7 @@ void draw()
   
   
   // Smooth simulation
-  float simStep = 0.5;
+  float simStep = 1.0;
   float simSteps = ceil(tick / simStep);
   
   // Manage set dressing
@@ -606,7 +606,14 @@ void draw()
   // Manage population
   if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
   {
-    spawnShipPreyA();
+    if(random(1.0) < 0.5)
+    {
+      spawnShipPreyA();
+    }
+    else
+    {
+      spawnShipPreyB();
+    }
     //spawnShipPreyGunboat();
   }
   
@@ -678,6 +685,12 @@ void keyPressed()
       noLoop();
       paused = true;
     }
+  }
+  
+  if( key == 'B'  ||  key == 'b' )
+  {
+    // Toggle bloom effects
+    renderManager.doBloom = !renderManager.doBloom;
   }
   
   if( key == 'S'  ||  key == 's' )
@@ -771,6 +784,14 @@ void spawnShipPreyA()
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
+}
+
+void spawnShipPreyB()
+{
+  PVector pos = new PVector(random(-60,60), -4, 0);
+  PVector targetPos = pos.get();
+  targetPos.add( PVector.random3D() );
+  sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_B, 0);
 }
 
 void spawnShipPreyGunboat()

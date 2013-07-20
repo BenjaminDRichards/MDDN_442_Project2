@@ -274,8 +274,8 @@ class RenderManager
     shaderComp.set("screenWarpMap", bScreenWarp);
     shaderComp.set("screenWarpScale", 0.2);
     shaderComp.set("aspectRatioCorrection", bOutput.height / (float) bOutput.width,  1.0);
-    float chromAb = 0.3;
-    shaderComp.set("chromAb", 1.0 * chromAb, 0.9 * chromAb, 0.8 * chromAb);
+    float warpScale = 0.3;
+    shaderComp.set("chromAb", 1.0 * warpScale, 0.9 * warpScale, 0.8 * warpScale);
     if( !bOutput.equals(g) )  bOutput.beginDraw();
     bOutput.shader(shaderComp);
     bOutput.image(bDiffuse, 0,0, bOutput.width, bOutput.height);
@@ -288,7 +288,8 @@ class RenderManager
     {
       // Parameters
       float bloomStep = 4.0 / 720.0;
-      float bloomFallPower = 3.5;
+      //float bloomFallPower = 3.5;
+      float bloomFallPower = 3.0;
       
       // Cache graphics
       bBloomCache.beginDraw();

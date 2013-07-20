@@ -6,8 +6,9 @@ class ShipManager
   ArrayList ships, shipsNew;
   
   public static final int MODEL_PREY_A = 1;
-  public static final int MODEL_GUNBOAT = 2;
-  public static final int MODEL_MANTLE = 3;
+  public static final int MODEL_PREY_B = 2;
+  public static final int MODEL_GUNBOAT = 3;
+  public static final int MODEL_MANTLE = 4;
   public static final int MODEL_TURRET_MISSILE_A = 10;
   public static final int MODEL_TURRET_BULLET_A = 11;
   public static final int MODEL_MISSILE_A = 20;
@@ -62,6 +63,9 @@ class ShipManager
     {
       case MODEL_PREY_A:
         ship.configureAsPreyA();
+        break;
+      case MODEL_PREY_B:
+        ship.configureAsPreyB();
         break;
       case MODEL_GUNBOAT:
         ship.configureAsGunboat();
