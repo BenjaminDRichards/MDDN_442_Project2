@@ -18,6 +18,7 @@ varying vec4 vertTexCoord;
 uniform float lightSpecularPower;
 uniform vec4 lightColor;
 uniform float lightBrightness;
+uniform float lightSpecularFactor;
 
 // External map data
 uniform sampler2D normalMap;
@@ -76,7 +77,8 @@ void main() {
 		float eyeDot = max( dot(reflectionVec, eyeVec),  0.0);	// Clamped to avoid negatives
 		
 		// Compute specular power
-		float specular = pow(eyeDot, lightSpecularPower) * specularStrength * lightIntensity;
+		float specular = pow(eyeDot, lightSpecularPower)
+			* specularStrength * lightIntensity * lightSpecularFactor;
 		
 		// Composit color
 		gl_FragColor = vec4(diffValue + specular) * lightColor;

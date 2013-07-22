@@ -21,17 +21,17 @@ class RenderManager
     // Set buffers to match output dimensions
     int rx = bOutput.width;
     int ry = bOutput.height;
-    //int rxLow = rx / 2;
-    //int ryLow = ry / 2;
+    int rxLow = rx / 2;
+    int ryLow = ry / 2;
     bDiffuse = createGraphics(rx, ry, P2D);
     bNormal = createGraphics(rx, ry, P2D);
     bSpecular = createGraphics(rx, ry, P2D);
     bLight = createGraphics(rx, ry, P2D);
     bEmissive = createGraphics(rx, ry, P2D);
-    bWarp = createGraphics(rx, ry, P2D);
+    bWarp = createGraphics(rxLow, ryLow, P2D);
     bBackground = createGraphics(rx, ry, P2D);
     bForeground = createGraphics(rx, ry, P2D);
-    bScreenWarp = createGraphics(rx, ry, P2D);
+    bScreenWarp = createGraphics(rxLow, ryLow, P2D);
     
     // Initialise shaders
     shaderNorm = loadShader("shaders/tex_normDeferrer.frag.glsl", "shaders/tex.vert.glsl");
@@ -49,7 +49,7 @@ class RenderManager
     bForeground.clear();
     bForeground.endDraw();
     bScreenWarp.beginDraw();
-    bScreenWarp.image(tex_warpBackdrop, 0,0, bBackground.width, bBackground.height);
+    bScreenWarp.image(tex_warpBackdrop, 0,0, bScreenWarp.width, bScreenWarp.height);
     bScreenWarp.endDraw();
     bWarp.beginDraw();
     bWarp.background(127,127,255);
@@ -207,12 +207,12 @@ class RenderManager
     // Fullscreen pass
     if(fullWarp != null)
     {
-      bWarp.pushStyle();
+      //bWarp.pushStyle();
       //bWarp.shader(shaderNorm);    // This is only necessary for rotation, and we're not rotating
-      //bWarp.tint(255, 192);
       //shaderNorm.set("worldAngle", 0.0);
+      //bWarp.tint(255, 192);
       bWarp.image(fullWarp, 0,0, bWarp.width, bWarp.height);
-      bWarp.popStyle();
+      //bWarp.popStyle();
     }
     // Sprites
     Iterator iW = sprites.iterator();
@@ -288,8 +288,7 @@ class RenderManager
     {
       // Parameters
       float bloomStep = 4.0 / 720.0;
-      //float bloomFallPower = 3.5;
-      float bloomFallPower = 3.0;
+      float bloomFallPower = 4.0;
       
       // Cache graphics
       bBloomCache.beginDraw();
@@ -359,6 +358,15 @@ class RenderManager
     pos = new PVector( fromPercentX(pos.x), fromPercent(pos.y) );  // Note that this uses fromPercentX, as it's screen space
     offset = new PVector( fromPercent(offset.x), fromPercent(offset.y) );
     res = new PVector( fromPercent(res.x), fromPercent(res.y) );
+    
+    // Account for scaled buffers
+    if(canvas.width != bufferRes.x)
+    {
+      float rescaleFactor = canvas.width / bufferRes.x;
+      pos.mult(rescaleFactor);
+      offset.mult(rescaleFactor);
+      res.mult(rescaleFactor);
+    }
     
     
     canvas.pushMatrix();

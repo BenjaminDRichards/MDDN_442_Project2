@@ -13,7 +13,7 @@ class Light
   
   // Point data
   DAGTransform transform;
-  float specularPower, lightBrightness;
+  float specularPower, specularFactor, lightBrightness;
   PVector lightColor;
   float mDiameter;
   float mBrightToDiam;
@@ -33,10 +33,11 @@ class Light
     // Point defaults
     
     this.transform = transform;
-    specularPower = 4.0;
+    specularPower = 7.0;
+    specularFactor = 3.0;
     this.lightColor = new PVector( red(lightColor) / 255.0, green(lightColor) / 255.0, blue(lightColor) / 255.0 );
     
-    mBrightToDiam = 512;  // Trial and error indicates this is most pleasing
+    mBrightToDiam = 256;  // Trial and error indicates this is most pleasing
     
     stencil = lightStencil;  // Loaded externally
     
@@ -70,6 +71,7 @@ class Light
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
     shader.set("lightBrightness", scaledBrightness);
+    shader.set("lightSpecularFactor", specularFactor);
     //shader.set("worldAngle", transform.getWorldRotation() );
     shader.set("normalMap", normalBuffer);
     shader.set("lightSpecularMap", specularBuffer);
@@ -113,6 +115,7 @@ class Light
     shader.set("lightColor", lightColor.x, lightColor.y, lightColor.z, 1.0);
     float scaledBrightness = lightBrightness * transform.getLocalScale().x;  // This means light brightness can scale.
     shader.set("lightBrightness", scaledBrightness);
+    shader.set("lightSpecularFactor", specularFactor);
     //shader.set("worldAngle", 0.0 );
     shader.set("normalMap", normalBuffer);
     shader.set("lightSpecularMap", specularBuffer);

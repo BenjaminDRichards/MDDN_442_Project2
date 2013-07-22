@@ -130,9 +130,8 @@ class Ship
     dismemberTimer = 0;
     dismemberTimerInterval = 10;
     colExplosion = color(127, 255, 192, 255);
-    explosionParticles = 64;
+    explosionParticles = 32;
     explosionTemplates = new ArrayList();
-    //setupExplosionTemplatesA();
     setupExplosionTemplatesPyrotechnic( color(127, 255, 192, 255) );
     
     // Military data
@@ -917,6 +916,7 @@ class Ship
     int pop = int(random(0.5, 1.0) * explosionParticles);
     DAGTransform dagPE = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
     ParticleEmitter pe = new ParticleEmitter(dagPE, null, 0);
+    pe.ageMin = 0.5;
     Iterator iPE = explosionTemplates.iterator();
     while( iPE.hasNext() )
     {
@@ -941,7 +941,7 @@ class Ship
     
     // Create temporary light source
     DAGTransform dagLight = new DAGTransform(pos.x, pos.y, pos.z,  0,  1,1,1);
-    Light xLight = new Light( dagLight, 0.5, colExplosion );
+    Light xLight = new Light( dagLight, 0.25, colExplosion );
     lights.add(xLight);
     // Animate light
     dagLight.useSX = true;
@@ -1632,9 +1632,9 @@ class Ship
     thrust = 0.0015;
     turnThrust = 0.0002;
     //cloakOnInactive = true;
-    colExplosion = color(255,222,192,255);
-    
-    color colDrive = color(255,222,192, 255);
+    //colExplosion = color(255,222,192,255);
+    //color colDrive = color(255,222,192, 255);
+    color colDrive = colExplosion;
     
     // Setup explosion particles
     explosionTemplates.clear();
@@ -1689,7 +1689,7 @@ class Ship
     driveLightDag.setParent(driveDag);
     driveLightDag.moveWorld(0, 9.0, 0);
     driveLightDag.useSX = true;
-    Light driveLight = new Light( driveLightDag, 1.0, colDrive );
+    Light driveLight = new Light( driveLightDag, 0.7, colDrive );
     lights.add(driveLight);
     // Animate that light
     DAGTransform driveLightDag_key1 = new DAGTransform(0,0,0, 0, 0,1,1);
@@ -1957,8 +1957,8 @@ class Ship
     thrust = 0.0015;
     turnThrust = 0.0002;
     maxVel = 0.15;
-    colExplosion = color(255,222,192,255);
-    color colDrive = color(255,222,192, 255);
+    colExplosion = color(255,222,160,255);
+    color colDrive = colExplosion;
     
     
     // Setup explosion particles
@@ -1976,8 +1976,8 @@ class Ship
     sprite_keel.setWarp(ship_mantle_keel_warp);
     
     // Drive lights and emitters
-    float driveEmitRate = 0.5;
-    float driveBrightness = 0.1;
+    float driveEmitRate = 0.3;
+    float driveBrightness = 0.25;
     // Exhaust particle
     Sprite sprite_particle_exhaust = new Sprite(null, null, 1.0, 1.0, -0.5, -0.5);
     sprite_particle_exhaust.setWarp(fx_wrinkle256);
@@ -1992,7 +1992,7 @@ class Ship
     DAGTransform dag_driveLeft = new DAGTransform(0,0,0, 0, 1,1,1);
     dag_driveLeft.snapTo(dag_keel);
     dag_driveLeft.setParent(dag_keel);
-    dag_driveLeft.moveWorld(-1.7, 1.0);
+    dag_driveLeft.moveWorld(-2.0, 1.0);
     // Left drive animation
     dag_driveLeft.useSX = true;
     DAGTransform dag_driveLeft_key1 = new DAGTransform(0,0,0, 0, 0.0, 1,1);
@@ -2011,7 +2011,7 @@ class Ship
     DAGTransform dag_driveRight = new DAGTransform(0,0,0, 0, 1,1,1);
     dag_driveRight.snapTo(dag_keel);
     dag_driveRight.setParent(dag_keel);
-    dag_driveRight.moveWorld(1.7, 1.0);
+    dag_driveRight.moveWorld(2.0, 1.0);
     // Right drive animation
     dag_driveRight.useSX = true;
     DAGTransform dag_driveRight_key1 = new DAGTransform(0,0,0, 0, 0.0, 1,1);
@@ -2685,7 +2685,7 @@ class Ship
   public void configureAsTurretMissileB()
   // This shoots missile-B munitions in warm plasma
   {
-    configureAsTurretMissile( color(255,191,127,255) );
+    configureAsTurretMissile( color(255,223,160,255) );
     munitionType = MUNITION_MISSILE_B;
     
     // Reconfigure sprite
@@ -2744,7 +2744,7 @@ class Ship
   public void configureAsTurretBulletB()
   // This shoots bullet-B munitions, hot plasma bolts
   {
-    configureAsTurretBullet( color(255,191,127,255) );
+    configureAsTurretBullet( color(255,223,160,255) );
     munitionType = MUNITION_BULLET_B;
     
     // Reconfigure sprite
@@ -2840,7 +2840,7 @@ class Ship
   
   public void configureAsMissileB()
   {
-    configureAsMissile( color(255,191,127,255) );
+    configureAsMissile( color(255,223,160,255) );
   }
   // configureAsMissileB
   
@@ -2911,10 +2911,11 @@ class Ship
       DAGTransform em1Host = new DAGTransform(0, 0.8, 0,  0,  1,1,1);
       em1Host.setParent(hull);
       ParticleEmitter em1 = new ParticleEmitter(em1Host, null, 4.0);
+      em1.ageMin = 0.5;
       emitters.add(em1);
       
       // Drive light 1
-      Light em1Light = new Light(em1Host, 0.75, colExplosion);
+      Light em1Light = new Light(em1Host, 0.5, colExplosion);
       lights.add(em1Light);
       
       // PARTICLES
@@ -2935,12 +2936,12 @@ class Ship
         em1.addTemplate(p);
       
       // Refractors
-      Sprite sprite_particle_exhaust = new Sprite(null, null, 0.5, 0.5, -0.5, -0.5);
+      Sprite sprite_particle_exhaust = new Sprite(null, null, 1.0, 1.0, -0.5, -0.5);
       sprite_particle_exhaust.setWarp(fx_wrinkle256);
-      sprite_particle_exhaust.masterTintWarp = color(255,64);
+      sprite_particle_exhaust.masterTintWarp = color(255,32);
       PVector exhaustVel = new PVector(0.05, 0, 0);
       float exhaustSpin = 0.02;
-      float exhaustAgeMax = 60;
+      float exhaustAgeMax = 30;
       Particle particle_exhaust = new Particle(null, sprite_particle_exhaust, exhaustVel, exhaustSpin, exhaustAgeMax);
       particle_exhaust.fadeWarp = Particle.FADE_INOUT_SMOOTH;
       for(int i = 0;  i < 2;  i++)
@@ -2950,7 +2951,7 @@ class Ship
       PVector puffVel = new PVector(0.04, 0, 0);
       float puffSpin = 0.04;
       float puffDisperseSize = 12.0;
-      float puffAgeMax = 30;
+      float puffAgeMax = 60;
       PVector pr = new PVector(0.25, 0.25);
       color puffTint = color(colExplosion, 64);
       
@@ -3011,7 +3012,7 @@ class Ship
   public void configureAsBulletB()
   // A warm bullet
   {
-    configureAsBullet( color(255,191,127,255) );
+    configureAsBullet( color(255,223,160,255) );
   }
   // configureAsBulletB
   
@@ -3056,7 +3057,7 @@ class Ship
     sprites.add(bulletHighlight);
     
     // Core light
-    Light bulletGlow = new Light(hull, 0.8, colExplosion);
+    Light bulletGlow = new Light(hull, 1.0, colExplosion);
     lights.add(bulletGlow);
     
     // Finalise
@@ -3129,7 +3130,7 @@ class Ship
   
   private void setupExplosionTemplatesPyroAndDebris(color col)
   {
-    for(int i = 0;  i < 32;  i++)
+    for(int i = 0;  i < 48;  i++)
     {    setupExplosionTemplatesPyrotechnic(col);    }
     setupExplosionTemplatesDebris(col);
   }
@@ -3273,6 +3274,7 @@ class Ship
     PVector pVel = new PVector(0.2, 0.0,0.0);
     float pSpin = 0.02;
     float pAgeMax = 900;
+    float resolutionMatcher = 4320.0 / height;    // Matching the load scale of (0.25 * height / 1080.0)
     
     // Make sprites
     Iterator iDiff = assetsDiff.iterator();
@@ -3281,14 +3283,14 @@ class Ship
     {
       PImage diff = (PImage) iDiff.next();
       PImage norm = (PImage) iNorm.next();
-      float res = diff.width / 32.0;
+      float res = diff.width * resolutionMatcher / 32.0;
       Sprite s = new Sprite(null, diff, res,res, -0.5,-0.5);
       s.setNormal(norm);
       s.setSpecular(diff);
       Particle p = new Particle(null, s, pVel, pSpin, pAgeMax);
       p.disperseSize = -0.5;
       p.fadeDiff = Particle.FADE_CUBEROOT;
-      p.fadeNorm = Particle.FADE_NIL;
+      p.fadeNorm = Particle.FADE_CUBEROOT;
       p.fadeSpec = Particle.FADE_CUBEROOT;
       explosionTemplates.add(p);
     }
