@@ -15,7 +15,7 @@ boolean paused;
 
 ShipManager sceneShipManager, dressageShipManager;
 Ship playerShip;
-int MIN_SHIP_COUNT = 8;
+int MIN_SHIP_COUNT = 16;
 
 PGraphics output;              // Where the main drawing gets done
 PVector bufferRes;
@@ -212,26 +212,26 @@ void setup()
   // Load resources
   float scaleFactor = 0.25 * height / 1080;
   
-  lightStencil = loadImage("images/lightStencil16.png");
+  lightStencil = loadImage("images/lightStencil16.png");    // Do not rescale this one
   
   tex_backdrop = loadImageScaled("images/starscape4.png", scaleFactor * 2.0 );
   tex_warpBackdrop = loadImage("images/windowGlass5.png");
   
-  fx_shockwave = loadImageScaled("images/effects/shockwave2.png", scaleFactor);
-  fx_spatter = loadImage("images/effects/spatter2.png");
+  fx_shockwave = loadImageScaledNormal("images/effects/shockwave2.png", scaleFactor);
+  fx_spatter = loadImageScaled("images/effects/spatter2.png", scaleFactor);
   fx_streak = loadImage("images/effects/streak.png");
   fx_ray1 = loadImage("images/effects/ray1.png");
   fx_ray2 = loadImage("images/effects/ray2.png");
-  fx_puff1 = loadImage("images/effects/puff1.png");
-  fx_puff2 = loadImage("images/effects/puff2.png");
-  fx_puff3 = loadImage("images/effects/puff3.png");
-  fx_puff1norm = loadImage("images/effects/puff1norm.png");
-  fx_puff2norm = loadImage("images/effects/puff2norm.png");
-  fx_puff3norm = loadImage("images/effects/puff3norm.png");
-  fx_jet = loadImage("images/effects/jet.png");
-  fx_wrinkle8 = loadImageScaled("images/effects/wrinkle8.png", scaleFactor);
-  fx_wrinkle64 = loadImageScaled("images/effects/wrinkle64.png", scaleFactor);
-  fx_wrinkle256 = loadImageScaled("images/effects/wrinkle256.png", scaleFactor);
+  fx_puff1 = loadImageScaled("images/effects/puff1.png", scaleFactor);
+  fx_puff2 = loadImageScaled("images/effects/puff2.png", scaleFactor);
+  fx_puff3 = loadImageScaled("images/effects/puff3.png", scaleFactor);
+  fx_puff1norm = loadImageScaledNormal("images/effects/puff1norm.png", scaleFactor);
+  fx_puff2norm = loadImageScaledNormal("images/effects/puff2norm.png", scaleFactor);
+  fx_puff3norm = loadImageScaledNormal("images/effects/puff3norm.png", scaleFactor);
+  fx_jet = loadImageScaled("images/effects/jet.png", scaleFactor);
+  fx_wrinkle8 = loadImageScaledNormal("images/effects/wrinkle8.png", scaleFactor);
+  fx_wrinkle64 = loadImageScaledNormal("images/effects/wrinkle64.png", scaleFactor);
+  fx_wrinkle256 = loadImageScaledNormal("images/effects/wrinkle256.png", scaleFactor);
   
   hud_reticule = loadImage("images/hud/HUDreticule.png");
   hud_element_helm = loadImage("images/hud/HUD_elements_helm.png");
@@ -240,154 +240,154 @@ void setup()
   hud_element_stealth = loadImage("images/hud/HUD_elements_stealth.png");
   
   ship_preya_bridge_diff = loadImageScaled("images/ships/PreyA/PreyA_bridge_diff.png", scaleFactor);
-  ship_preya_bridge_norm = loadImageScaled("images/ships/PreyA/PreyA_bridge_norm.png", scaleFactor);
+  ship_preya_bridge_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_bridge_norm.png", scaleFactor);
   ship_preya_drive_diff = loadImageScaled("images/ships/PreyA/PreyA_drive_diff.png", scaleFactor);
-  ship_preya_drive_norm = loadImageScaled("images/ships/PreyA/PreyA_drive_norm.png", scaleFactor);
+  ship_preya_drive_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_drive_norm.png", scaleFactor);
   ship_preya_inner_diff = loadImageScaled("images/ships/PreyA/PreyA_inner_diff.png", scaleFactor);
-  ship_preya_inner_norm = loadImageScaled("images/ships/PreyA/PreyA_inner_norm.png", scaleFactor);
+  ship_preya_inner_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_inner_norm.png", scaleFactor);
   ship_preya_motor1L_diff = loadImageScaled("images/ships/PreyA/PreyA_motor1L_diff.png", scaleFactor);
-  ship_preya_motor1L_norm = loadImageScaled("images/ships/PreyA/PreyA_motor1L_norm.png", scaleFactor);
+  ship_preya_motor1L_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor1L_norm.png", scaleFactor);
   ship_preya_motor1R_diff = loadImageScaled("images/ships/PreyA/PreyA_motor1R_diff.png", scaleFactor);
-  ship_preya_motor1R_norm = loadImageScaled("images/ships/PreyA/PreyA_motor1R_norm.png", scaleFactor);
+  ship_preya_motor1R_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor1R_norm.png", scaleFactor);
   ship_preya_motor2L_diff = loadImageScaled("images/ships/PreyA/PreyA_motor2L_diff.png", scaleFactor);
-  ship_preya_motor2L_norm = loadImageScaled("images/ships/PreyA/PreyA_motor2L_norm.png", scaleFactor);
+  ship_preya_motor2L_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor2L_norm.png", scaleFactor);
   ship_preya_motor2R_diff = loadImageScaled("images/ships/PreyA/PreyA_motor2R_diff.png", scaleFactor);
-  ship_preya_motor2R_norm = loadImageScaled("images/ships/PreyA/PreyA_motor2R_norm.png", scaleFactor);
+  ship_preya_motor2R_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor2R_norm.png", scaleFactor);
   ship_preya_motor3L_diff = loadImageScaled("images/ships/PreyA/PreyA_motor3L_diff.png", scaleFactor);
-  ship_preya_motor3L_norm = loadImageScaled("images/ships/PreyA/PreyA_motor3L_norm.png", scaleFactor);
+  ship_preya_motor3L_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor3L_norm.png", scaleFactor);
   ship_preya_motor3R_diff = loadImageScaled("images/ships/PreyA/PreyA_motor3R_diff.png", scaleFactor);
-  ship_preya_motor3R_norm = loadImageScaled("images/ships/PreyA/PreyA_motor3R_norm.png", scaleFactor);
+  ship_preya_motor3R_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_motor3R_norm.png", scaleFactor);
   ship_preya_prow_diff = loadImageScaled("images/ships/PreyA/PreyA_prow_diff.png", scaleFactor);
-  ship_preya_prow_norm = loadImageScaled("images/ships/PreyA/PreyA_prow_norm.png", scaleFactor);
+  ship_preya_prow_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_prow_norm.png", scaleFactor);
   ship_preya_thrusterArmL_diff = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmL_diff.png", scaleFactor);
-  ship_preya_thrusterArmL_norm = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmL_norm.png", scaleFactor);
+  ship_preya_thrusterArmL_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterArmL_norm.png", scaleFactor);
   ship_preya_thrusterArmR_diff = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmR_diff.png", scaleFactor);
-  ship_preya_thrusterArmR_norm = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmR_norm.png", scaleFactor);
+  ship_preya_thrusterArmR_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterArmR_norm.png", scaleFactor);
   ship_preya_thrusterL_diff = loadImageScaled("images/ships/PreyA/PreyA_thrusterL_diff.png", scaleFactor);
-  ship_preya_thrusterL_norm = loadImageScaled("images/ships/PreyA/PreyA_thrusterL_norm.png", scaleFactor);
+  ship_preya_thrusterL_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterL_norm.png", scaleFactor);
   ship_preya_thrusterR_diff = loadImageScaled("images/ships/PreyA/PreyA_thrusterR_diff.png", scaleFactor);
-  ship_preya_thrusterR_norm = loadImageScaled("images/ships/PreyA/PreyA_thrusterR_norm.png", scaleFactor);
+  ship_preya_thrusterR_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterR_norm.png", scaleFactor);
   ship_preya_turret_diff = loadImageScaled("images/ships/PreyA/PreyA_turret_diff.png", scaleFactor);
-  ship_preya_turret_norm = loadImageScaled("images/ships/PreyA/PreyA_turret_norm.png", scaleFactor);
+  ship_preya_turret_norm = loadImageScaledNormal("images/ships/PreyA/PreyA_turret_norm.png", scaleFactor);
   
   // Load generated smooth warp fields
-  ship_preya_bridge_warp = loadImageScaled("images/ships/PreyA/PreyA_bridge_warp.png", scaleFactor);
-  ship_preya_drive_warp = loadImageScaled("images/ships/PreyA/PreyA_drive_warp.png", scaleFactor);
-  ship_preya_inner_warp = loadImageScaled("images/ships/PreyA/PreyA_inner_warp.png", scaleFactor);
-  ship_preya_motor1L_warp = loadImageScaled("images/ships/PreyA/PreyA_motor1L_warp.png", scaleFactor);
-  ship_preya_motor1R_warp = loadImageScaled("images/ships/PreyA/PreyA_motor1R_warp.png", scaleFactor);
-  ship_preya_motor2L_warp = loadImageScaled("images/ships/PreyA/PreyA_motor2L_warp.png", scaleFactor);
-  ship_preya_motor2R_warp = loadImageScaled("images/ships/PreyA/PreyA_motor2R_warp.png", scaleFactor);
-  ship_preya_motor3L_warp = loadImageScaled("images/ships/PreyA/PreyA_motor3L_warp.png", scaleFactor);
-  ship_preya_motor3R_warp = loadImageScaled("images/ships/PreyA/PreyA_motor3R_warp.png", scaleFactor);
-  ship_preya_prow_warp = loadImageScaled("images/ships/PreyA/PreyA_prow_warp.png", scaleFactor);
-  ship_preya_thrusterArmL_warp = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmL_warp.png", scaleFactor);
-  ship_preya_thrusterArmR_warp = loadImageScaled("images/ships/PreyA/PreyA_thrusterArmR_warp.png", scaleFactor);
-  ship_preya_thrusterL_warp = loadImageScaled("images/ships/PreyA/PreyA_thrusterL_warp.png", scaleFactor);
-  ship_preya_thrusterR_warp = loadImageScaled("images/ships/PreyA/PreyA_thrusterR_warp.png", scaleFactor);
-  ship_preya_turret_warp = loadImageScaled("images/ships/PreyA/PreyA_turret_warp.png", scaleFactor);
+  ship_preya_bridge_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_bridge_warp.png", scaleFactor);
+  ship_preya_drive_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_drive_warp.png", scaleFactor);
+  ship_preya_inner_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_inner_warp.png", scaleFactor);
+  ship_preya_motor1L_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor1L_warp.png", scaleFactor);
+  ship_preya_motor1R_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor1R_warp.png", scaleFactor);
+  ship_preya_motor2L_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor2L_warp.png", scaleFactor);
+  ship_preya_motor2R_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor2R_warp.png", scaleFactor);
+  ship_preya_motor3L_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor3L_warp.png", scaleFactor);
+  ship_preya_motor3R_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_motor3R_warp.png", scaleFactor);
+  ship_preya_prow_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_prow_warp.png", scaleFactor);
+  ship_preya_thrusterArmL_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterArmL_warp.png", scaleFactor);
+  ship_preya_thrusterArmR_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterArmR_warp.png", scaleFactor);
+  ship_preya_thrusterL_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterL_warp.png", scaleFactor);
+  ship_preya_thrusterR_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_thrusterR_warp.png", scaleFactor);
+  ship_preya_turret_warp = loadImageScaledNormal("images/ships/PreyA/PreyA_turret_warp.png", scaleFactor);
   
   // LoadMantle ship sprites
   ship_mantle_keel_diff = loadImageScaled("images/ships/Mantle/Mantle_keel_diff.png", scaleFactor);
-  ship_mantle_keel_norm = loadImageScaled("images/ships/Mantle/Mantle_keel_norm.png", scaleFactor);
-  ship_mantle_keel_warp = loadImageScaled("images/ships/Mantle/Mantle_keel_warp.png", scaleFactor);
+  ship_mantle_keel_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_keel_norm.png", scaleFactor);
+  ship_mantle_keel_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_keel_warp.png", scaleFactor);
   ship_mantle_tail1_diff = loadImageScaled("images/ships/Mantle/Mantle_tail1_diff.png", scaleFactor);
-  ship_mantle_tail1_norm = loadImageScaled("images/ships/Mantle/Mantle_tail1_norm.png", scaleFactor);
-  ship_mantle_tail1_warp = loadImageScaled("images/ships/Mantle/Mantle_tail1_warp.png", scaleFactor);
+  ship_mantle_tail1_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tail1_norm.png", scaleFactor);
+  ship_mantle_tail1_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tail1_warp.png", scaleFactor);
   ship_mantle_tail2_diff = loadImageScaled("images/ships/Mantle/Mantle_tail2_diff.png", scaleFactor);
-  ship_mantle_tail2_norm = loadImageScaled("images/ships/Mantle/Mantle_tail2_norm.png", scaleFactor);
-  ship_mantle_tail2_warp = loadImageScaled("images/ships/Mantle/Mantle_tail2_warp.png", scaleFactor);
+  ship_mantle_tail2_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tail2_norm.png", scaleFactor);
+  ship_mantle_tail2_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tail2_warp.png", scaleFactor);
   ship_mantle_tail3_diff = loadImageScaled("images/ships/Mantle/Mantle_tail3_diff.png", scaleFactor);
-  ship_mantle_tail3_norm = loadImageScaled("images/ships/Mantle/Mantle_tail3_norm.png", scaleFactor);
-  ship_mantle_tail3_warp = loadImageScaled("images/ships/Mantle/Mantle_tail3_warp.png", scaleFactor);
+  ship_mantle_tail3_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tail3_norm.png", scaleFactor);
+  ship_mantle_tail3_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tail3_warp.png", scaleFactor);
   ship_mantle_tailL1_diff = loadImageScaled("images/ships/Mantle/Mantle_tailL1_diff.png", scaleFactor);
-  ship_mantle_tailL1_norm = loadImageScaled("images/ships/Mantle/Mantle_tailL1_norm.png", scaleFactor);
-  ship_mantle_tailL1_warp = loadImageScaled("images/ships/Mantle/Mantle_tailL1_warp.png", scaleFactor);
+  ship_mantle_tailL1_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL1_norm.png", scaleFactor);
+  ship_mantle_tailL1_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL1_warp.png", scaleFactor);
   ship_mantle_tailL2_diff = loadImageScaled("images/ships/Mantle/Mantle_tailL2_diff.png", scaleFactor);
-  ship_mantle_tailL2_norm = loadImageScaled("images/ships/Mantle/Mantle_tailL2_norm.png", scaleFactor);
-  ship_mantle_tailL2_warp = loadImageScaled("images/ships/Mantle/Mantle_tailL2_warp.png", scaleFactor);
+  ship_mantle_tailL2_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL2_norm.png", scaleFactor);
+  ship_mantle_tailL2_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL2_warp.png", scaleFactor);
   ship_mantle_tailL3_diff = loadImageScaled("images/ships/Mantle/Mantle_tailL3_diff.png", scaleFactor);
-  ship_mantle_tailL3_norm = loadImageScaled("images/ships/Mantle/Mantle_tailL3_norm.png", scaleFactor);
-  ship_mantle_tailL3_warp = loadImageScaled("images/ships/Mantle/Mantle_tailL3_warp.png", scaleFactor);
+  ship_mantle_tailL3_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL3_norm.png", scaleFactor);
+  ship_mantle_tailL3_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailL3_warp.png", scaleFactor);
   ship_mantle_tailR1_diff = loadImageScaled("images/ships/Mantle/Mantle_tailR1_diff.png", scaleFactor);
-  ship_mantle_tailR1_norm = loadImageScaled("images/ships/Mantle/Mantle_tailR1_norm.png", scaleFactor);
-  ship_mantle_tailR1_warp = loadImageScaled("images/ships/Mantle/Mantle_tailR1_warp.png", scaleFactor);
+  ship_mantle_tailR1_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR1_norm.png", scaleFactor);
+  ship_mantle_tailR1_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR1_warp.png", scaleFactor);
   ship_mantle_tailR2_diff = loadImageScaled("images/ships/Mantle/Mantle_tailR2_diff.png", scaleFactor);
-  ship_mantle_tailR2_norm = loadImageScaled("images/ships/Mantle/Mantle_tailR2_norm.png", scaleFactor);
-  ship_mantle_tailR2_warp = loadImageScaled("images/ships/Mantle/Mantle_tailR2_warp.png", scaleFactor);
+  ship_mantle_tailR2_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR2_norm.png", scaleFactor);
+  ship_mantle_tailR2_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR2_warp.png", scaleFactor);
   ship_mantle_tailR3_diff = loadImageScaled("images/ships/Mantle/Mantle_tailR3_diff.png", scaleFactor);
-  ship_mantle_tailR3_norm = loadImageScaled("images/ships/Mantle/Mantle_tailR3_norm.png", scaleFactor);
-  ship_mantle_tailR3_warp = loadImageScaled("images/ships/Mantle/Mantle_tailR3_warp.png", scaleFactor);
+  ship_mantle_tailR3_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR3_norm.png", scaleFactor);
+  ship_mantle_tailR3_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailR3_warp.png", scaleFactor);
   ship_mantle_tailTip_diff = loadImageScaled("images/ships/Mantle/Mantle_tailTip_diff.png", scaleFactor);
-  ship_mantle_tailTip_norm = loadImageScaled("images/ships/Mantle/Mantle_tailTip_norm.png", scaleFactor);
-  ship_mantle_tailTip_warp = loadImageScaled("images/ships/Mantle/Mantle_tailTip_warp.png", scaleFactor);
+  ship_mantle_tailTip_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_tailTip_norm.png", scaleFactor);
+  ship_mantle_tailTip_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_tailTip_warp.png", scaleFactor);
   ship_mantle_turret_diff = loadImageScaled("images/ships/Mantle/Mantle_turret_diff.png", scaleFactor);
-  ship_mantle_turret_norm = loadImageScaled("images/ships/Mantle/Mantle_turret_norm.png", scaleFactor);
-  ship_mantle_turret_warp = loadImageScaled("images/ships/Mantle/Mantle_turret_warp.png", scaleFactor);
+  ship_mantle_turret_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_turret_norm.png", scaleFactor);
+  ship_mantle_turret_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_turret_warp.png", scaleFactor);
   ship_mantle_wing1L_diff = loadImageScaled("images/ships/Mantle/Mantle_wing1L_diff.png", scaleFactor);
-  ship_mantle_wing1L_norm = loadImageScaled("images/ships/Mantle/Mantle_wing1L_norm.png", scaleFactor);
-  ship_mantle_wing1L_warp = loadImageScaled("images/ships/Mantle/Mantle_wing1L_warp.png", scaleFactor);
+  ship_mantle_wing1L_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_wing1L_norm.png", scaleFactor);
+  ship_mantle_wing1L_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_wing1L_warp.png", scaleFactor);
   ship_mantle_wing1R_diff = loadImageScaled("images/ships/Mantle/Mantle_wing1R_diff.png", scaleFactor);
-  ship_mantle_wing1R_norm = loadImageScaled("images/ships/Mantle/Mantle_wing1R_norm.png", scaleFactor);
-  ship_mantle_wing1R_warp = loadImageScaled("images/ships/Mantle/Mantle_wing1R_warp.png", scaleFactor);
+  ship_mantle_wing1R_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_wing1R_norm.png", scaleFactor);
+  ship_mantle_wing1R_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_wing1R_warp.png", scaleFactor);
   ship_mantle_wing2L_diff = loadImageScaled("images/ships/Mantle/Mantle_wing2L_diff.png", scaleFactor);
-  ship_mantle_wing2L_norm = loadImageScaled("images/ships/Mantle/Mantle_wing2L_norm.png", scaleFactor);
-  ship_mantle_wing2L_warp = loadImageScaled("images/ships/Mantle/Mantle_wing2L_warp.png", scaleFactor);
+  ship_mantle_wing2L_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_wing2L_norm.png", scaleFactor);
+  ship_mantle_wing2L_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_wing2L_warp.png", scaleFactor);
   ship_mantle_wing2R_diff = loadImageScaled("images/ships/Mantle/Mantle_wing2R_diff.png", scaleFactor);
-  ship_mantle_wing2R_norm = loadImageScaled("images/ships/Mantle/Mantle_wing2R_norm.png", scaleFactor);
-  ship_mantle_wing2R_warp = loadImageScaled("images/ships/Mantle/Mantle_wing2R_warp.png", scaleFactor);
+  ship_mantle_wing2R_norm = loadImageScaledNormal("images/ships/Mantle/Mantle_wing2R_norm.png", scaleFactor);
+  ship_mantle_wing2R_warp = loadImageScaledNormal("images/ships/Mantle/Mantle_wing2R_warp.png", scaleFactor);
   
   // Load debris sprites
   debris_01_diff = loadImageScaled("images/effects/debris/debris01_diff.png", scaleFactor);
-  debris_01_norm = loadImageScaled("images/effects/debris/debris01_norm.png", scaleFactor);
+  debris_01_norm = loadImageScaledNormal("images/effects/debris/debris01_norm.png", scaleFactor);
   debris_02_diff = loadImageScaled("images/effects/debris/debris02_diff.png", scaleFactor);
-  debris_02_norm = loadImageScaled("images/effects/debris/debris02_norm.png", scaleFactor);
+  debris_02_norm = loadImageScaledNormal("images/effects/debris/debris02_norm.png", scaleFactor);
   debris_03_diff = loadImageScaled("images/effects/debris/debris03_diff.png", scaleFactor);
-  debris_03_norm = loadImageScaled("images/effects/debris/debris03_norm.png", scaleFactor);
+  debris_03_norm = loadImageScaledNormal("images/effects/debris/debris03_norm.png", scaleFactor);
   debris_04_diff = loadImageScaled("images/effects/debris/debris04_diff.png", scaleFactor);
-  debris_04_norm = loadImageScaled("images/effects/debris/debris04_norm.png", scaleFactor);
+  debris_04_norm = loadImageScaledNormal("images/effects/debris/debris04_norm.png", scaleFactor);
   debris_05_diff = loadImageScaled("images/effects/debris/debris05_diff.png", scaleFactor);
-  debris_05_norm = loadImageScaled("images/effects/debris/debris05_norm.png", scaleFactor);
+  debris_05_norm = loadImageScaledNormal("images/effects/debris/debris05_norm.png", scaleFactor);
   debris_06_diff = loadImageScaled("images/effects/debris/debris06_diff.png", scaleFactor);
-  debris_06_norm = loadImageScaled("images/effects/debris/debris06_norm.png", scaleFactor);
+  debris_06_norm = loadImageScaledNormal("images/effects/debris/debris06_norm.png", scaleFactor);
   debris_07_diff = loadImageScaled("images/effects/debris/debris07_diff.png", scaleFactor);
-  debris_07_norm = loadImageScaled("images/effects/debris/debris07_norm.png", scaleFactor);
+  debris_07_norm = loadImageScaledNormal("images/effects/debris/debris07_norm.png", scaleFactor);
   debris_08_diff = loadImageScaled("images/effects/debris/debris08_diff.png", scaleFactor);
-  debris_08_norm = loadImageScaled("images/effects/debris/debris08_norm.png", scaleFactor);
+  debris_08_norm = loadImageScaledNormal("images/effects/debris/debris08_norm.png", scaleFactor);
   debris_09_diff = loadImageScaled("images/effects/debris/debris09_diff.png", scaleFactor);
-  debris_09_norm = loadImageScaled("images/effects/debris/debris09_norm.png", scaleFactor);
+  debris_09_norm = loadImageScaledNormal("images/effects/debris/debris09_norm.png", scaleFactor);
   
   debris_10_diff = loadImageScaled("images/effects/debris/debris10_diff.png", scaleFactor);
-  debris_10_norm = loadImageScaled("images/effects/debris/debris10_norm.png", scaleFactor);
+  debris_10_norm = loadImageScaledNormal("images/effects/debris/debris10_norm.png", scaleFactor);
   debris_11_diff = loadImageScaled("images/effects/debris/debris11_diff.png", scaleFactor);
-  debris_11_norm = loadImageScaled("images/effects/debris/debris11_norm.png", scaleFactor);
+  debris_11_norm = loadImageScaledNormal("images/effects/debris/debris11_norm.png", scaleFactor);
   debris_12_diff = loadImageScaled("images/effects/debris/debris12_diff.png", scaleFactor);
-  debris_12_norm = loadImageScaled("images/effects/debris/debris12_norm.png", scaleFactor);
+  debris_12_norm = loadImageScaledNormal("images/effects/debris/debris12_norm.png", scaleFactor);
   debris_13_diff = loadImageScaled("images/effects/debris/debris13_diff.png", scaleFactor);
-  debris_13_norm = loadImageScaled("images/effects/debris/debris13_norm.png", scaleFactor);
+  debris_13_norm = loadImageScaledNormal("images/effects/debris/debris13_norm.png", scaleFactor);
   debris_14_diff = loadImageScaled("images/effects/debris/debris14_diff.png", scaleFactor);
-  debris_14_norm = loadImageScaled("images/effects/debris/debris14_norm.png", scaleFactor);
+  debris_14_norm = loadImageScaledNormal("images/effects/debris/debris14_norm.png", scaleFactor);
   debris_15_diff = loadImageScaled("images/effects/debris/debris15_diff.png", scaleFactor);
-  debris_15_norm = loadImageScaled("images/effects/debris/debris15_norm.png", scaleFactor);
+  debris_15_norm = loadImageScaledNormal("images/effects/debris/debris15_norm.png", scaleFactor);
   debris_16_diff = loadImageScaled("images/effects/debris/debris16_diff.png", scaleFactor);
-  debris_16_norm = loadImageScaled("images/effects/debris/debris16_norm.png", scaleFactor);
+  debris_16_norm = loadImageScaledNormal("images/effects/debris/debris16_norm.png", scaleFactor);
   debris_17_diff = loadImageScaled("images/effects/debris/debris17_diff.png", scaleFactor);
-  debris_17_norm = loadImageScaled("images/effects/debris/debris17_norm.png", scaleFactor);
+  debris_17_norm = loadImageScaledNormal("images/effects/debris/debris17_norm.png", scaleFactor);
   debris_18_diff = loadImageScaled("images/effects/debris/debris18_diff.png", scaleFactor);
-  debris_18_norm = loadImageScaled("images/effects/debris/debris18_norm.png", scaleFactor);
+  debris_18_norm = loadImageScaledNormal("images/effects/debris/debris18_norm.png", scaleFactor);
   debris_19_diff = loadImageScaled("images/effects/debris/debris19_diff.png", scaleFactor);
-  debris_19_norm = loadImageScaled("images/effects/debris/debris19_norm.png", scaleFactor);
+  debris_19_norm = loadImageScaledNormal("images/effects/debris/debris19_norm.png", scaleFactor);
   
   debris_20_diff = loadImageScaled("images/effects/debris/debris20_diff.png", scaleFactor);
-  debris_20_norm = loadImageScaled("images/effects/debris/debris20_norm.png", scaleFactor);
+  debris_20_norm = loadImageScaledNormal("images/effects/debris/debris20_norm.png", scaleFactor);
   debris_21_diff = loadImageScaled("images/effects/debris/debris21_diff.png", scaleFactor);
-  debris_21_norm = loadImageScaled("images/effects/debris/debris21_norm.png", scaleFactor);
+  debris_21_norm = loadImageScaledNormal("images/effects/debris/debris21_norm.png", scaleFactor);
   debris_22_diff = loadImageScaled("images/effects/debris/debris22_diff.png", scaleFactor);
-  debris_22_norm = loadImageScaled("images/effects/debris/debris22_norm.png", scaleFactor);
+  debris_22_norm = loadImageScaledNormal("images/effects/debris/debris22_norm.png", scaleFactor);
   debris_23_diff = loadImageScaled("images/effects/debris/debris23_diff.png", scaleFactor);
-  debris_23_norm = loadImageScaled("images/effects/debris/debris23_norm.png", scaleFactor);
+  debris_23_norm = loadImageScaledNormal("images/effects/debris/debris23_norm.png", scaleFactor);
   debris_24_diff = loadImageScaled("images/effects/debris/debris24_diff.png", scaleFactor);
-  debris_24_norm = loadImageScaled("images/effects/debris/debris24_norm.png", scaleFactor);
+  debris_24_norm = loadImageScaledNormal("images/effects/debris/debris24_norm.png", scaleFactor);
   
   debris_dust = loadImageScaled("images/effects/debris/SpaceDust.png", scaleFactor * 2.0);
   
@@ -464,7 +464,7 @@ void setup()
   dirl.makeDirectional( new PVector(0.6, -1, 0.0) );
   sceneLights.add(dirl);
   // Neutral fill from above
-  dirl = new Light(dirlDag, 0.1, color(223, 255, 223, 255));
+  dirl = new Light(dirlDag, 0.1, color(191, 255, 223, 255));
   dirl.makeDirectional( new PVector(-0.3, 0.5, -1.0) );
   sceneLights.add(dirl);
   // Rust rim
@@ -596,7 +596,12 @@ void draw()
   // Manage population
   if(sceneShipManager.ships.size() < MIN_SHIP_COUNT + 1)  // The player is also counted
   {
-    if(random(1.0) < 0.5)
+    float roll = random(1.0);
+    if(roll < 0.1)
+    {
+      spawnShipPreyGunboat();
+    }
+    else if(roll < 0.6)
     {
       spawnShipPreyA();
     }
@@ -788,7 +793,7 @@ float fromPercent(float n)
 
 void spawnShipPreyA()
 {
-  PVector pos = new PVector(random(-60,60), -4, 0);
+  PVector pos = new PVector(random(-88,88), -9, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_A, 0);
@@ -796,7 +801,7 @@ void spawnShipPreyA()
 
 void spawnShipPreyB()
 {
-  PVector pos = new PVector(random(-60,60), -4, 0);
+  PVector pos = new PVector(random(-88,88), -9, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_PREY_B, 0);
@@ -804,7 +809,7 @@ void spawnShipPreyB()
 
 void spawnShipPreyGunboat()
 {
-  PVector pos = new PVector(random(-60,60), -4, 0);
+  PVector pos = new PVector(random(-88,88), -9, 0);
   PVector targetPos = pos.get();
   targetPos.add( PVector.random3D() );
   Ship s = sceneShipManager.makeShip(pos, targetPos, ShipManager.MODEL_GUNBOAT, 0);
@@ -813,21 +818,88 @@ void spawnShipPreyGunboat()
 
 
 PGraphics loadImageScaled(String filename, float scalefactor)
+{
+  return( loadImageScaled( filename, scalefactor, color(255) ) );
+}
+
+PGraphics loadImageScaled(String filename, float scalefactor, color fillColor)
 // Loads an image scaled. Very useful for getting better performance from the high-res assets used in Mantle.
 {
+  // Get raw data
   PImage img = loadImage(filename);
   int resX = int(img.width * scalefactor);
   int resY = int(img.height * scalefactor);
   resX = min(resX, img.width);
   resX = min(resY, img.height);
+  
+  // Get alpha-less version
+  PGraphics pgUnmasked = createGraphics(img.width, img.height, P2D);
+  pgUnmasked.beginDraw();
+  pgUnmasked.background(0);
+  pgUnmasked.image(img, 0,0, pgUnmasked.width, pgUnmasked.height);
+  pgUnmasked.loadPixels();
+  img.loadPixels();
+  for(int i = 0;  i < pgUnmasked.pixels.length;  i++)
+  {
+    color col = img.pixels[i];
+    pgUnmasked.pixels[i] = color( red(col), green(col), blue(col) );
+  }
+  pgUnmasked.updatePixels();
+  pgUnmasked.endDraw();
+  
+  // Get resized alpha source
+  PGraphics pgResized = createGraphics(resX, resY, P2D);
+  pgResized.beginDraw();
+  pgResized.clear();
+  pgResized.image(img, 0,0, resX, resY);
+  pgResized.endDraw();
+  
+  // Make final buffer
   PGraphics pg = createGraphics(resX, resY, P2D);
   pg.beginDraw();
-  pg.clear();
+  // Lay down resized colours
+  pg.image(pgUnmasked, 0,0, resX, resY);
+  // Apply alpha
+  pg.loadPixels();
+  pgResized.loadPixels();
+  for(int i = 0;  i < pg.pixels.length;  i++)
+  {
+    color colA = pgResized.pixels[i];
+    color colRGB = pg.pixels[i];
+    pg.pixels[i] = color( red(colRGB), green(colRGB), blue(colRGB), alpha(colA) );
+  }
+  // Finalise
+  pg.updatePixels();
+  pgResized.updatePixels();
+  pg.endDraw();
+  println("resized " + filename + " to [ " + pg.width + " " + pg.height + " ]");
+  return( pg );
+  
+  /*
+  // Make final buffer
+  PGraphics pg = createGraphics(resX, resY, P2D);
+  pg.beginDraw();
+  // Clear background
+  //pg.clear();
+  pg.loadPixels();
+  for(int i = 0;  i < pg.pixels.length;  i++)
+  {
+    pg.pixels[i] = color( red(fillColor), green(fillColor), blue(fillColor), 0 );
+  }
+  pg.updatePixels();
+  // Draw image
   pg.image(img, 0,0, pg.width, pg.height);
   pg.endDraw();
+  println("resized " + filename + " to [ " + pg.width + " " + pg.height + " ]");
   return( pg );
+  */
 }
 // loadImageScaled
+
+PGraphics loadImageScaledNormal(String filename, float scalefactor)
+{
+  return( loadImageScaled( filename, scalefactor, color(127, 127, 255) ) );
+}
 
 
 
